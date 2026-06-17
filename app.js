@@ -67,8 +67,10 @@ function bindControls() {
   document.getElementById("closePreviewFooterButton").addEventListener("click", closePreviewModal);
   document.getElementById("searchInput").addEventListener("input", render);
   document.getElementById("statusFilter").addEventListener("change", render);
-  document.getElementById("taskDate").addEventListener("change", event => event.target.blur());
-  document.getElementById("taskDeadline").addEventListener("change", event => event.target.blur());
+  document.getElementById("taskDate").addEventListener("input", event => closeDatePicker(event.target));
+  document.getElementById("taskDate").addEventListener("change", event => closeDatePicker(event.target));
+  document.getElementById("taskDeadline").addEventListener("input", event => closeDatePicker(event.target));
+  document.getElementById("taskDeadline").addEventListener("change", event => closeDatePicker(event.target));
 
   document.querySelectorAll(".nav-item").forEach(button => {
     button.addEventListener("click", () => setView(button.dataset.view));
@@ -453,6 +455,16 @@ function openTaskModal() {
 
 function closeTaskModal() {
   document.getElementById("taskModal").close();
+}
+
+function closeDatePicker(input) {
+  if (!input.value) return;
+  window.setTimeout(() => {
+    const currentType = input.type;
+    input.blur();
+    input.type = "text";
+    input.type = currentType;
+  }, 80);
 }
 
 async function saveTask(event) {
