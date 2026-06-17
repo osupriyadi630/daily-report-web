@@ -9,7 +9,7 @@ import {
 import {
   getFirestore,
   collection,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -430,17 +430,26 @@ async function saveTask(event) {
 
   try {
     if (id) {
-      await updateDoc(doc(db, "tasks", id), payload);
       updateTaskCache(currentUser.uid, { id, ...payload });
+      state.tasks = loadCachedTasks(currentUser.uid);
+      state.syncMessage = "Tugas disimpan di perangkat. Mengirim ke Firebase...";
+      render();
+      await updateDoc(doc(db, "tasks", id), payload);
     } else {
-      const newTask = await addDoc(collection(db, "tasks"), { ...payload, createdAt: serverTimestamp() });
-      updateTaskCache(currentUser.uid, { id: newTask.id, ...payload });
+      const taskRef = doc(collection(db, "tasks"));
+      updateTaskCache(currentUser.uid, { id: taskRef.id, ...payload });
+      state.tasks = loadCachedTasks(currentUser.uid);
+      state.syncMessage = "Tugas disimpan di perangkat. Mengirim ke Firebase...";
+      render();
+      await setDoc(taskRef, { ...payload, createdAt: serverTimestamp() });
     }
-    state.syncMessage = "Tugas berhasil disimpan.";
+    state.syncMessage = "Tugas berhasil disimpan dan tersinkron.";
     state.tasks = loadCachedTasks(currentUser.uid);
     render();
     closeTaskModal();
   } catch (error) {
+    state.syncMessage = "Firebase gagal menyimpan. Tugas tetap ada di cadangan lokal perangkat ini.";
+    render();
     alert(error.message);
   }
 }
@@ -476,16 +485,22 @@ async function removeTask(id) {
 
 async function setTaskStatus(id, status) {
   try {
+    const task = state.tasks.find(item => item.id === id);
+    if (task) {
+      updateTaskCache(currentUser.uid, { ...task, status });
+      state.tasks = loadCachedTasks(currentUser.uid);
+      state.syncMessage = `Status tugas diubah ke ${status}. Mengirim ke Firebase...`;
+      render();
+    }
     await updateDoc(doc(db, "tasks", id), {
       status,
       updatedAt: serverTimestamp()
     });
-    const task = state.tasks.find(item => item.id === id);
-    if (task) updateTaskCache(currentUser.uid, { ...task, status });
-    state.tasks = loadCachedTasks(currentUser.uid);
-    state.syncMessage = `Status tugas diubah ke ${status}.`;
+    state.syncMessage = `Status tugas tersinkron ke ${status}.`;
     render();
   } catch (error) {
+    state.syncMessage = "Firebase gagal memperbarui status. Perubahan tetap ada di cadangan lokal.";
+    render();
     alert(error.message);
   }
 }
