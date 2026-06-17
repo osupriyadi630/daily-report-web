@@ -67,9 +67,18 @@ button { cursor: pointer; }
   margin-top: 22px;
 }
 
-.auth-actions {
+.auth-mode {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 22px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.auth-actions {
+  display: grid;
   gap: 10px;
 }
 

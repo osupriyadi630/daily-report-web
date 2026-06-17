@@ -16,7 +16,6 @@ import {
   onSnapshot,
   query,
   where,
-  orderBy,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
@@ -37,7 +36,8 @@ let state = {
   today: getToday(),
   filter: "all",
   activeView: "dashboard",
-  syncMessage: "Menunggu login..."
+  syncMessage: "Menunggu login...",
+  authMode: "login"
 };
 
 const statusToList = {
@@ -49,8 +49,9 @@ const statusToList = {
 document.addEventListener("DOMContentLoaded", bindControls);
 
 function bindControls() {
-  document.getElementById("authForm").addEventListener("submit", handleLogin);
-  document.getElementById("registerButton").addEventListener("click", handleRegister);
+  document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+  document.getElementById("loginModeButton").addEventListener("click", () => setAuthMode("login"));
+  document.getElementById("registerModeButton").addEventListener("click", () => setAuthMode("register"));
   document.getElementById("logoutButton").addEventListener("click", () => signOut(auth));
   document.getElementById("newTaskButton").addEventListener("click", openTaskModal);
   document.getElementById("newTaskButtonTable").addEventListener("click", openTaskModal);
@@ -66,6 +67,8 @@ function bindControls() {
   document.getElementById("closePreviewFooterButton").addEventListener("click", closePreviewModal);
   document.getElementById("searchInput").addEventListener("input", render);
   document.getElementById("statusFilter").addEventListener("change", render);
+  document.getElementById("taskDate").addEventListener("change", event => event.target.blur());
+  document.getElementById("taskDeadline").addEventListener("change", event => event.target.blur());
 
   document.querySelectorAll(".nav-item").forEach(button => {
     button.addEventListener("click", () => setView(button.dataset.view));
@@ -90,7 +93,7 @@ onAuthStateChanged(auth, user => {
 
   if (user) {
     document.getElementById("userEmail").textContent = user.email;
-    state.tasks = loadCachedTasks(user.uid);
+    state.tasks = loadCachedTasks(user);
     state.syncMessage = state.tasks.length
       ? "Menampilkan cadangan lokal. Sinkronisasi Firebase berjalan..."
       : "Memuat data dari Firebase...";
@@ -103,8 +106,28 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-async function handleLogin(event) {
+function setAuthMode(mode) {
+  state.authMode = mode;
+  const isRegister = mode === "register";
+  document.getElementById("authTitle").textContent = isRegister ? "Daftar" : "Masuk";
+  document.getElementById("authHint").textContent = isRegister
+    ? "Buat akun baru dengan email dan password."
+    : "Masuk untuk membuka dashboard tugas dan laporan.";
+  document.getElementById("authSubmitButton").textContent = isRegister ? "Daftar" : "Masuk";
+  document.getElementById("loginModeButton").classList.toggle("active", !isRegister);
+  document.getElementById("registerModeButton").classList.toggle("active", isRegister);
+}
+
+function handleAuthSubmit(event) {
   event.preventDefault();
+  if (state.authMode === "register") {
+    handleRegister();
+    return;
+  }
+  handleLogin();
+}
+
+async function handleLogin(event) {
   const email = document.getElementById("authEmail").value;
   const password = document.getElementById("authPassword").value;
   try {
@@ -131,25 +154,26 @@ async function handleRegister() {
 function watchTasks(uid) {
   const tasksQuery = query(
     collection(db, "tasks"),
-    where("ownerUid", "==", uid),
-    orderBy("createdAt", "desc")
+    where("ownerUid", "==", uid)
   );
 
   unsubscribeTasks = onSnapshot(tasksQuery, snapshot => {
-    const remoteTasks = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-    const cachedTasks = loadCachedTasks(uid);
+    const remoteTasks = snapshot.docs
+      .map(item => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => String(b.tanggal || "").localeCompare(String(a.tanggal || "")));
+    const cachedTasks = loadCachedTasks(currentUser || uid);
 
     if (!remoteTasks.length && cachedTasks.length) {
       state.tasks = cachedTasks;
       state.syncMessage = "Firebase belum mengirim data. Menampilkan cadangan lokal terakhir.";
     } else {
       state.tasks = remoteTasks;
-      saveTasksToCache(uid, state.tasks);
+      saveTasksToCache(currentUser || uid, state.tasks);
       state.syncMessage = "Tersinkron dengan Firebase.";
     }
     render();
   }, error => {
-    state.tasks = loadCachedTasks(uid);
+    state.tasks = loadCachedTasks(currentUser || uid);
     state.syncMessage = "Firebase gagal dibaca. Menampilkan cadangan lokal.";
     render();
     alert(error.message);
@@ -430,23 +454,24 @@ async function saveTask(event) {
 
   try {
     if (id) {
-      updateTaskCache(currentUser.uid, { id, ...payload });
-      state.tasks = loadCachedTasks(currentUser.uid);
+      updateTaskCache(currentUser, { id, ...payload });
+      state.tasks = loadCachedTasks(currentUser);
       state.syncMessage = "Tugas disimpan di perangkat. Mengirim ke Firebase...";
       render();
+      closeTaskModal();
       await updateDoc(doc(db, "tasks", id), payload);
     } else {
       const taskRef = doc(collection(db, "tasks"));
-      updateTaskCache(currentUser.uid, { id: taskRef.id, ...payload });
-      state.tasks = loadCachedTasks(currentUser.uid);
+      updateTaskCache(currentUser, { id: taskRef.id, ...payload });
+      state.tasks = loadCachedTasks(currentUser);
       state.syncMessage = "Tugas disimpan di perangkat. Mengirim ke Firebase...";
       render();
+      closeTaskModal();
       await setDoc(taskRef, { ...payload, createdAt: serverTimestamp() });
     }
     state.syncMessage = "Tugas berhasil disimpan dan tersinkron.";
-    state.tasks = loadCachedTasks(currentUser.uid);
+    state.tasks = loadCachedTasks(currentUser);
     render();
-    closeTaskModal();
   } catch (error) {
     state.syncMessage = "Firebase gagal menyimpan. Tugas tetap ada di cadangan lokal perangkat ini.";
     render();
@@ -473,9 +498,11 @@ function editTask(id) {
 async function removeTask(id) {
   if (!confirm("Hapus tugas ini?")) return;
   try {
+    removeTaskFromCache(currentUser, id);
+    state.tasks = loadCachedTasks(currentUser);
+    state.syncMessage = "Tugas dihapus dari perangkat. Mengirim ke Firebase...";
+    render();
     await deleteDoc(doc(db, "tasks", id));
-    removeTaskFromCache(currentUser.uid, id);
-    state.tasks = loadCachedTasks(currentUser.uid);
     state.syncMessage = "Tugas berhasil dihapus.";
     render();
   } catch (error) {
@@ -487,8 +514,8 @@ async function setTaskStatus(id, status) {
   try {
     const task = state.tasks.find(item => item.id === id);
     if (task) {
-      updateTaskCache(currentUser.uid, { ...task, status });
-      state.tasks = loadCachedTasks(currentUser.uid);
+      updateTaskCache(currentUser, { ...task, status });
+      state.tasks = loadCachedTasks(currentUser);
       state.syncMessage = `Status tugas diubah ke ${status}. Mengirim ke Firebase...`;
       render();
     }
@@ -670,21 +697,37 @@ function csvCell(value) {
   return `"${String(value || "").replaceAll('"', '""')}"`;
 }
 
-function getCacheKey(uid) {
-  return `asisten-harian.tasks.${uid}`;
+function getCacheKeys(userOrUid) {
+  const fallbackKey = "asisten-harian.tasks.last";
+  if (!userOrUid) return [fallbackKey];
+  if (typeof userOrUid === "string") return [`asisten-harian.tasks.${userOrUid}`, fallbackKey];
+
+  const keys = [fallbackKey];
+  if (userOrUid.uid) keys.push(`asisten-harian.tasks.${userOrUid.uid}`);
+  if (userOrUid.email) keys.push(`asisten-harian.tasks.email.${userOrUid.email.toLowerCase()}`);
+  return [...new Set(keys)];
 }
 
-function loadCachedTasks(uid) {
-  if (!uid) return [];
-  try {
-    return JSON.parse(localStorage.getItem(getCacheKey(uid)) || "[]");
-  } catch (error) {
-    return [];
-  }
+function loadCachedTasks(userOrUid) {
+  const keys = getCacheKeys(userOrUid);
+  if (!keys.length) return [];
+
+  let bestTasks = [];
+  keys.forEach(key => {
+    try {
+      const tasks = JSON.parse(localStorage.getItem(key) || "[]");
+      if (tasks.length > bestTasks.length) bestTasks = tasks;
+    } catch (error) {
+      // Abaikan cache rusak dan lanjutkan kunci berikutnya.
+    }
+  });
+  return bestTasks;
 }
 
-function saveTasksToCache(uid, tasks) {
-  if (!uid) return;
+function saveTasksToCache(userOrUid, tasks) {
+  const keys = getCacheKeys(userOrUid);
+  if (!keys.length) return;
+
   const cleanTasks = tasks.map(task => ({
     id: task.id,
     ownerUid: task.ownerUid,
@@ -697,22 +740,33 @@ function saveTasksToCache(uid, tasks) {
     emailPenanggungJawab: task.emailPenanggungJawab || "",
     catatan: task.catatan || ""
   }));
-  localStorage.setItem(getCacheKey(uid), JSON.stringify(cleanTasks));
+
+  keys.forEach(key => {
+    localStorage.setItem(key, JSON.stringify(cleanTasks));
+  });
 }
 
-function updateTaskCache(uid, task) {
-  const tasks = loadCachedTasks(uid);
+function updateTaskCache(userOrUid, task) {
+  const tasks = loadCachedTasks(userOrUid);
   const index = tasks.findIndex(item => item.id === task.id);
   if (index >= 0) {
     tasks[index] = { ...tasks[index], ...task };
   } else {
     tasks.unshift(task);
   }
-  saveTasksToCache(uid, tasks);
+  saveTasksToCache(userOrUid, tasks);
 }
 
-function removeTaskFromCache(uid, id) {
-  saveTasksToCache(uid, loadCachedTasks(uid).filter(task => task.id !== id));
+function removeTaskFromCache(userOrUid, id) {
+  saveTasksToCache(userOrUid, loadCachedTasks(userOrUid).filter(task => task.id !== id));
+}
+
+function loadLegacyCache(uid) {
+  try {
+    return JSON.parse(localStorage.getItem(`asisten-harian.tasks.${uid}`) || "[]");
+  } catch (error) {
+    return [];
+  }
 }
 
 function isOverdue(task) {

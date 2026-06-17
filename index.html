@@ -12,9 +12,14 @@
       <div class="brand-row">
         <span class="brand-mark">AH</span>
         <div>
-          <h1>Asisten Harian</h1>
-          <p>Dashboard tugas dan laporan berbasis web gratis.</p>
+          <h1 id="authTitle">Masuk</h1>
+          <p id="authHint">Masuk untuk membuka dashboard tugas dan laporan.</p>
         </div>
+      </div>
+
+      <div class="auth-mode">
+        <button class="segment active" type="button" id="loginModeButton">Masuk</button>
+        <button class="segment" type="button" id="registerModeButton">Daftar</button>
       </div>
 
       <form id="authForm" class="auth-form">
@@ -25,8 +30,7 @@
           <input id="authPassword" type="password" required placeholder="Minimal 6 karakter">
         </label>
         <div class="auth-actions">
-          <button class="primary-button" type="submit">Masuk</button>
-          <button class="secondary-button" type="button" id="registerButton">Daftar</button>
+          <button class="primary-button" type="submit" id="authSubmitButton">Masuk</button>
         </div>
       </form>
     </section>
