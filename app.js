@@ -74,9 +74,9 @@ function bindControls() {
     button.addEventListener("click", () => setView(button.dataset.view));
   });
 
-  document.querySelectorAll(".segment").forEach(button => {
+  document.querySelectorAll(".toolbar .segment").forEach(button => {
     button.addEventListener("click", () => {
-      document.querySelectorAll(".segment").forEach(item => item.classList.remove("active"));
+      document.querySelectorAll(".toolbar .segment").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
       state.filter = button.dataset.filter;
       render();
@@ -109,6 +109,7 @@ onAuthStateChanged(auth, user => {
 function setAuthMode(mode) {
   state.authMode = mode;
   const isRegister = mode === "register";
+  document.getElementById("authMessage").textContent = "";
   document.getElementById("authTitle").textContent = isRegister ? "Daftar" : "Masuk";
   document.getElementById("authHint").textContent = isRegister
     ? "Buat akun baru dengan email dan password."
@@ -130,10 +131,12 @@ function handleAuthSubmit(event) {
 async function handleLogin(event) {
   const email = document.getElementById("authEmail").value;
   const password = document.getElementById("authPassword").value;
+  setAuthMessage("Memproses masuk...");
   try {
     await signInWithEmailAndPassword(auth, email, password);
+    setAuthMessage("");
   } catch (error) {
-    alert(error.message);
+    setAuthMessage(getAuthErrorMessage(error));
   }
 }
 
@@ -141,14 +144,32 @@ async function handleRegister() {
   const email = document.getElementById("authEmail").value;
   const password = document.getElementById("authPassword").value;
   if (!email || !password) {
-    alert("Isi email dan password dulu.");
+    setAuthMessage("Isi email dan password dulu.");
     return;
   }
+  setAuthMessage("Mendaftarkan akun...");
   try {
     await createUserWithEmailAndPassword(auth, email, password);
+    setAuthMessage("");
   } catch (error) {
-    alert(error.message);
+    setAuthMessage(getAuthErrorMessage(error));
   }
+}
+
+function setAuthMessage(message) {
+  document.getElementById("authMessage").textContent = message;
+}
+
+function getAuthErrorMessage(error) {
+  const code = error.code || "";
+  if (code.includes("invalid-credential") || code.includes("wrong-password")) {
+    return "Email atau password salah. Periksa kembali lalu coba masuk.";
+  }
+  if (code.includes("user-not-found")) return "Akun belum terdaftar. Pilih Daftar untuk membuat akun.";
+  if (code.includes("email-already-in-use")) return "Email ini sudah terdaftar. Pilih Masuk.";
+  if (code.includes("weak-password")) return "Password minimal 6 karakter.";
+  if (code.includes("invalid-email")) return "Format email belum benar.";
+  return error.message || "Terjadi masalah login.";
 }
 
 function watchTasks(uid) {
@@ -393,7 +414,7 @@ document.addEventListener("click", event => {
   const filterShortcut = event.target.closest("[data-filter-shortcut]");
   if (filterShortcut) {
     state.filter = filterShortcut.dataset.filterShortcut;
-    document.querySelectorAll(".segment").forEach(item => {
+    document.querySelectorAll(".toolbar .segment").forEach(item => {
       item.classList.toggle("active", item.dataset.filter === state.filter);
     });
     render();

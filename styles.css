@@ -77,6 +77,13 @@ button { cursor: pointer; }
   background: var(--surface-soft);
 }
 
+.auth-message {
+  min-height: 20px;
+  color: #b91c1c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .auth-actions {
   display: grid;
   gap: 10px;
