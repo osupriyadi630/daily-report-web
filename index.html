@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asisten Harian</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="authView" class="auth-screen">
+    <section class="auth-card">
+      <div class="brand-row">
+        <span class="brand-mark">AH</span>
+        <div>
+          <h1>Asisten Harian</h1>
+          <p>Dashboard tugas dan laporan berbasis web gratis.</p>
+        </div>
+      </div>
+
+      <form id="authForm" class="auth-form">
+        <label>Email
+          <input id="authEmail" type="email" required placeholder="nama@gmail.com">
+        </label>
+        <label>Password
+          <input id="authPassword" type="password" required placeholder="Minimal 6 karakter">
+        </label>
+        <div class="auth-actions">
+          <button class="primary-button" type="submit">Masuk</button>
+          <button class="secondary-button" type="button" id="registerButton">Daftar</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand-row compact">
+        <span class="brand-mark">AH</span>
+        <div>
+          <strong>Asisten Harian</strong>
+          <small id="userEmail">Memuat...</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard">Dashboard</button>
+        <button class="nav-item" data-view="tasks">Tugas</button>
+        <button class="nav-item" data-view="reports">Laporan</button>
+        <button class="nav-item" data-view="settings">Pengaturan</button>
+      </nav>
+      <button class="ghost-button" id="logoutButton">Keluar</button>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <p id="todayText"></p>
+        </div>
+        <div class="top-actions">
+          <input id="searchInput" type="search" placeholder="Cari tugas atau catatan">
+          <button class="secondary-button" id="sendAllButton">Kirim Reminder</button>
+          <button class="primary-button" id="newTaskButton">+ Tugas Baru</button>
+        </div>
+      </header>
+
+      <section id="dashboardView" class="view active">
+        <section class="stats-grid">
+          <article class="stat-card"><span>Total</span><strong id="statTotal">0</strong></article>
+          <article class="stat-card green"><span>Selesai</span><strong id="statDone">0</strong></article>
+          <article class="stat-card blue"><span>Proses</span><strong id="statProgress">0</strong></article>
+          <article class="stat-card red"><span>Terlambat</span><strong id="statLate">0</strong></article>
+        </section>
+
+        <section class="toolbar">
+          <div class="segments">
+            <button class="segment active" data-filter="all">Semua</button>
+            <button class="segment" data-filter="today">Hari Ini</button>
+            <button class="segment" data-filter="late">Terlambat</button>
+          </div>
+          <select id="statusFilter">
+            <option value="all">Semua Status</option>
+            <option>Belum Selesai</option>
+            <option>Proses</option>
+            <option>Selesai</option>
+            <option>Tertunda</option>
+          </select>
+          <button class="secondary-button" id="createReportButton">Buat Laporan</button>
+        </section>
+
+        <section class="content-grid">
+          <div class="board">
+            <div class="column" data-status="Belum Selesai">
+              <h2>Belum Selesai</h2>
+              <div class="task-list" id="todoList"></div>
+            </div>
+            <div class="column" data-status="Proses">
+              <h2>Proses</h2>
+              <div class="task-list" id="progressList"></div>
+            </div>
+            <div class="column" data-status="Selesai">
+              <h2>Selesai</h2>
+              <div class="task-list" id="doneList"></div>
+            </div>
+          </div>
+          <aside class="right-panel">
+            <section class="panel">
+              <h2>Ringkasan Laporan</h2>
+              <div id="reportPreview" class="report-preview">Belum ada laporan dibuat pada sesi ini.</div>
+            </section>
+            <section class="panel">
+              <h2>Agenda Aktif</h2>
+              <div id="agendaList" class="agenda-list"></div>
+            </section>
+          </aside>
+        </section>
+      </section>
+
+      <section id="tasksView" class="view">
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Daftar Tugas</h2>
+              <p>Kelola semua tugas dalam format tabel.</p>
+            </div>
+            <button class="primary-button" id="newTaskButtonTable">+ Tugas Baru</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Nama Tugas</th>
+                  <th>Prioritas</th>
+                  <th>Status</th>
+                  <th>Deadline</th>
+                  <th>PJ</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tasksTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="reportsView" class="view">
+        <section class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Laporan</h2>
+              <p>Riwayat laporan harian tersimpan di browser sesi ini.</p>
+            </div>
+            <button class="primary-button" id="createReportButtonReports">Buat Laporan Hari Ini</button>
+          </div>
+          <div id="reportsList" class="report-list"></div>
+        </section>
+      </section>
+
+      <section id="settingsView" class="view">
+        <section class="settings-grid">
+          <article class="panel">
+            <h2>Pilih Penerima</h2>
+            <p>Pilih email penanggung jawab yang akan menerima reminder.</p>
+            <div id="recipientList" class="recipient-list"></div>
+            <button class="primary-button" id="sendSelectedButton">Kirim ke Email Terpilih</button>
+          </article>
+          <article class="panel">
+            <h2>Email Bridge</h2>
+            <p id="emailBridgeStatus">Memeriksa konfigurasi...</p>
+          </article>
+          <article class="panel">
+            <h2>Database</h2>
+            <p>Data tersimpan di Firebase Firestore per akun login.</p>
+          </article>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="taskModal">
+    <form method="dialog" class="modal-card" id="taskForm">
+      <header>
+        <h2 id="modalTitle">Tugas Baru</h2>
+        <button type="button" class="icon-button" id="closeTaskModalButton">x</button>
+      </header>
+      <input type="hidden" id="taskId">
+      <label>Nama Tugas
+        <input id="taskName" required placeholder="Contoh: Buat laporan harian">
+      </label>
+      <div class="form-grid">
+        <label>Tanggal
+          <input id="taskDate" type="date" required>
+        </label>
+        <label>Deadline
+          <input id="taskDeadline" type="datetime-local">
+        </label>
+      </div>
+      <div class="form-grid">
+        <label>Prioritas
+          <select id="taskPriority">
+            <option>Tinggi</option>
+            <option selected>Sedang</option>
+            <option>Rendah</option>
+          </select>
+        </label>
+        <label>Status
+          <select id="taskStatus">
+            <option>Belum Selesai</option>
+            <option>Proses</option>
+            <option>Selesai</option>
+            <option>Tertunda</option>
+          </select>
+        </label>
+      </div>
+      <label>Penanggung Jawab
+        <input id="taskOwner" placeholder="Nama orang/tim">
+      </label>
+      <label>Email Penanggung Jawab
+        <input id="taskOwnerEmail" type="email" placeholder="nama@gmail.com">
+      </label>
+      <label>Catatan
+        <textarea id="taskNote" rows="3" placeholder="Kendala, detail, atau hasil kerja"></textarea>
+      </label>
+      <footer>
+        <button type="button" class="secondary-button" id="cancelTaskButton">Batal</button>
+        <button class="primary-button" type="submit">Simpan</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="previewModal">
+    <div class="modal-card preview-card">
+      <header>
+        <div>
+          <h2 id="previewTitle">Preview Tugas</h2>
+          <p id="previewSubtitle"></p>
+        </div>
+        <button type="button" class="icon-button" id="closePreviewModalButton">x</button>
+      </header>
+      <div id="previewBody" class="preview-body"></div>
+      <footer>
+        <button type="button" class="secondary-button" id="closePreviewFooterButton">Tutup</button>
+        <button type="button" class="primary-button" id="previewSendButton">Kirim Email</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <script src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
+
