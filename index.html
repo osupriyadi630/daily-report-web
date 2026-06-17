@@ -4,9 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Asisten Harian</title>
-  <link rel="stylesheet" href="styles.css?v=20260617214600">
+  <style>
+    body.auth-pending #authView,
+    body.auth-pending #appView {
+      display: none !important;
+    }
+  </style>
+  <link rel="stylesheet" href="styles.css?v=20260617221400">
 </head>
-<body>
+<body class="auth-pending">
   <div id="loadingView" class="loading-screen">
     <aside class="loading-sidebar">
       <div class="loading-brand">
@@ -294,7 +300,7 @@
     </div>
   </dialog>
 
-  <script src="firebase-config.js?v=20260617215500"></script>
-  <script type="module" src="app.js?v=20260617215500"></script>
+  <script src="firebase-config.js?v=20260617221400"></script>
+  <script type="module" src="app.js?v=20260617221400"></script>
 </body>
 </html>
