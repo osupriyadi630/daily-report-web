@@ -87,6 +87,7 @@ function bindControls() {
 
 onAuthStateChanged(auth, user => {
   currentUser = user;
+  document.getElementById("loadingView").classList.add("hidden");
   document.getElementById("authView").classList.toggle("hidden", !!user);
   document.getElementById("appView").classList.toggle("hidden", !user);
 

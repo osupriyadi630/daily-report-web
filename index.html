@@ -7,7 +7,43 @@
   <link rel="stylesheet" href="styles.css?v=20260617214600">
 </head>
 <body>
-  <div id="authView" class="auth-screen">
+  <div id="loadingView" class="loading-screen">
+    <aside class="loading-sidebar">
+      <div class="loading-brand">
+        <span class="brand-mark">AH</span>
+        <div>
+          <strong>Asisten Harian</strong>
+          <small>Memuat sesi...</small>
+        </div>
+      </div>
+      <span></span>
+      <span></span>
+      <span></span>
+    </aside>
+    <main class="loading-main">
+      <header class="loading-topbar">
+        <div>
+          <span class="skeleton skeleton-title"></span>
+          <span class="skeleton skeleton-text"></span>
+        </div>
+        <span class="skeleton skeleton-search"></span>
+      </header>
+      <section class="loading-stats">
+        <span class="skeleton"></span>
+        <span class="skeleton"></span>
+        <span class="skeleton"></span>
+        <span class="skeleton"></span>
+      </section>
+      <section class="loading-board">
+        <span class="skeleton"></span>
+        <span class="skeleton"></span>
+        <span class="skeleton"></span>
+        <span class="skeleton"></span>
+      </section>
+    </main>
+  </div>
+
+  <div id="authView" class="auth-screen hidden">
     <section class="auth-card">
       <div class="brand-row">
         <span class="brand-mark">AH</span>
@@ -258,7 +294,7 @@
     </div>
   </dialog>
 
-  <script src="firebase-config.js?v=20260617214600"></script>
-  <script type="module" src="app.js?v=20260617214600"></script>
+  <script src="firebase-config.js?v=20260617215500"></script>
+  <script type="module" src="app.js?v=20260617215500"></script>
 </body>
 </html>

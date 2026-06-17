@@ -25,6 +25,85 @@ button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 .hidden { display: none !important; }
 
+.loading-screen {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.loading-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  padding: 24px;
+  background: #111827;
+}
+
+.loading-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+}
+
+.loading-brand small { display: block; color: #aeb8c8; margin-top: 2px; }
+.loading-sidebar > span {
+  height: 42px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.loading-main { padding: 28px; }
+.loading-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.loading-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.loading-stats .skeleton { height: 118px; }
+.loading-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(230px, 1fr)) 330px;
+  gap: 16px;
+}
+
+.loading-board .skeleton { min-height: 380px; }
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #e8edf4;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  animation: shimmer 1.2s infinite;
+}
+
+.skeleton-title { width: 220px; height: 34px; margin-bottom: 10px; }
+.skeleton-text { width: 160px; height: 18px; }
+.skeleton-search { width: min(520px, 45vw); height: 48px; }
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
 .auth-screen {
   display: grid;
   min-height: 100vh;
@@ -401,10 +480,17 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 @media (max-width: 1100px) {
   .app-shell { grid-template-columns: 1fr; }
   .content-grid { grid-template-columns: 1fr; }
+  .loading-screen { grid-template-columns: 1fr; }
+  .loading-sidebar { display: none; }
+  .loading-board { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
   .main { padding: 16px; }
+  .loading-main { padding: 16px; }
+  .loading-topbar { align-items: stretch; flex-direction: column; }
+  .loading-stats { grid-template-columns: 1fr; }
+  .skeleton-search { width: 100%; }
   .topbar, .toolbar, .section-header { align-items: stretch; flex-direction: column; }
   .attention-banner { align-items: stretch; flex-direction: column; }
   .top-actions { justify-content: stretch; }
