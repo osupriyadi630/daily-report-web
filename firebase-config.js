@@ -1,5 +1,5 @@
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCKmFdf3aiNaUKkRGcnWOKMO2YPF1-WRbw",
+  apiKey: "AIzaSyCKmFdf3aiNaUKkRGcnWOKMO2YPFl-WRbw",
   authDomain: "daily-report-ospr.firebaseapp.com",
   projectId: "daily-report-ospr",
   storageBucket: "daily-report-ospr.firebasestorage.app",
@@ -8,5 +8,5 @@ window.FIREBASE_CONFIG = {
   measurementId: "G-0MLRNNS8GX"
 };
 
-window.EMAIL_BRIDGE_URL = "";
-window.EMAIL_BRIDGE_TOKEN = "";
+window.EMAIL_BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzkF2LcBiTjFI-eQGYMl6woKrBPlD9yl60SoT1DPFB4cq8_-Hqcy6UGv4vHPtg8aWv49g/exec";
+window.EMAIL_BRIDGE_TOKEN = "Ospr630-daily-report";
