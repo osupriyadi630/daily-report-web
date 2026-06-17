@@ -1,5 +1,5 @@
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCKmFdf3aiNaUKkRGcnWOKMO2YPF1-WRbw",
+  apiKey: "AIzaSyCKmFdf3aiNaUKkRGcnWOKMO2YPFl-WRbw",
   authDomain: "daily-report-ospr.firebaseapp.com",
   projectId: "daily-report-ospr",
   storageBucket: "daily-report-ospr.firebasestorage.app",
