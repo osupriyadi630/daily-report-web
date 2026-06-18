@@ -36,9 +36,12 @@ const db = getFirestore(app);
 let currentUser = null;
 let currentProfile = null;
 let unsubscribeTasks = null;
+let unsubscribeProfiles = null;
 let welcomeTimer = null;
+let aiContextTaskId = null;
 let state = {
   tasks: [],
+  people: [],
   reports: [],
   today: getToday(),
   filter: "all",
@@ -120,6 +123,7 @@ onAuthStateChanged(auth, async user => {
   document.getElementById("aiChatLauncher").classList.toggle("hidden", !user);
 
   if (unsubscribeTasks) unsubscribeTasks();
+  if (unsubscribeProfiles) unsubscribeProfiles();
 
   if (user) {
     document.getElementById("userEmail").textContent = user.email;
@@ -131,10 +135,12 @@ onAuthStateChanged(auth, async user => {
       : "Memuat data dari Firebase...";
     render();
     watchTasks();
+    watchProfiles();
     showWelcomeToast();
   } else {
     currentProfile = null;
     state.tasks = [];
+    state.people = [];
     state.syncMessage = "Menunggu login...";
     render();
   }
@@ -333,18 +339,64 @@ function appendAiChatMessage(message, role) {
 }
 
 function answerLocalAiQuestion(question) {
-  const normalized = String(question).toLowerCase();
+  const normalized = normalizeSearchText(question);
   const tasks = state.tasks.map(task => ({ ...task, terlambat: isOverdue(task) }));
   const active = tasks.filter(task => task.status !== "Selesai");
   const late = active.filter(task => task.terlambat);
   const done = tasks.filter(task => task.status === "Selesai");
+  const people = buildPeopleDirectory(tasks);
+  const matchedTasks = findTasksFromQuestion(normalized, tasks);
+  const contextualTask = matchedTasks[0] ||
+    tasks.find(task => task.id === aiContextTaskId) ||
+    null;
+
+  if (matchedTasks.length === 1) aiContextTaskId = matchedTasks[0].id;
+
   const ranked = active
     .map(task => ({ task, score: getSmartTaskScore(task) }))
     .sort((a, b) => b.score - a.score);
   const top = ranked[0];
 
+  if (includesAny(normalized, ["siapa saja yang memberikan tugas", "siapa pemberi tugas", "pemberi tugas", "dibuat oleh siapa", "yang membuat tugas"])) {
+    const creators = buildCreatorDirectory(tasks, people);
+    if (!creators.length) return "Belum ada informasi pembuat tugas.";
+    return `Pemberi/pembuat tugas yang tercatat:\n${creators.map(item =>
+      `- ${item.name}${item.email && item.email !== item.name ? ` (${item.email})` : ""}: ${item.count} tugas`
+    ).join("\n")}`;
+  }
+
+  if (includesAny(normalized, ["penanggung jawabnya siapa", "siapa penanggung jawab", "siapa pj", "pj nya siapa", "pj-nya siapa"])) {
+    if (contextualTask) return formatTaskResponsibility(contextualTask, people);
+    const owners = buildWorkload(tasks);
+    if (!owners.length) return "Belum ada penanggung jawab yang tercatat.";
+    return `Penanggung jawab yang tercatat:\n${owners.map(item => `- ${item.owner}: ${item.count} tugas`).join("\n")}`;
+  }
+
+  if (includesAny(normalized, ["daftar orang", "semua orang", "siapa saja orang", "daftar pengguna", "semua pengguna", "member"])) {
+    if (!people.length) return "Belum ada profil atau orang yang tercatat.";
+    return `Orang/pengguna yang terbaca (${people.length}):\n${people.map(person =>
+      `- ${person.name}${person.email ? ` (${person.email})` : ""}${person.role ? ` - ${person.role}` : ""}`
+    ).join("\n")}`;
+  }
+
+  if (includesAny(normalized, ["semua tugas", "daftar tugas", "tugas apa saja"])) {
+    if (!tasks.length) return "Belum ada tugas yang tersimpan.";
+    return `Daftar tugas (${tasks.length}):\n${tasks.slice(0, 12).map(task => formatTaskLine(task)).join("\n")}${tasks.length > 12 ? `\n...dan ${tasks.length - 12} tugas lainnya.` : ""}`;
+  }
+
+  if (matchedTasks.length) {
+    if (matchedTasks.length === 1) return formatTaskDetails(matchedTasks[0], people);
+    return `Saya menemukan ${matchedTasks.length} tugas yang sesuai:\n${matchedTasks.slice(0, 8).map(task => formatTaskLine(task)).join("\n")}`;
+  }
+
+  const matchedPeople = findPeopleFromQuestion(normalized, people);
+  if (matchedPeople.length) {
+    return matchedPeople.slice(0, 5).map(person => formatPersonDetails(person, tasks)).join("\n\n");
+  }
+
   if (includesAny(normalized, ["fokus", "prioritas", "kerjakan dulu", "utama"])) {
     if (!top) return "Belum ada tugas aktif yang perlu diprioritaskan.";
+    aiContextTaskId = top.task.id;
     return `Fokus utama adalah "${top.task.namaTugas}" dengan skor ${top.score}/100. Status: ${top.task.status}. Deadline: ${top.task.deadline || "belum diisi"}.`;
   }
 
@@ -364,6 +416,22 @@ function answerLocalAiQuestion(question) {
     return `Beban tugas aktif:\n${workload.slice(0, 6).map(item => `- ${item.owner}: ${item.count} tugas`).join("\n")}`;
   }
 
+  if (includesAny(normalized, ["email", "alamat email", "kontak"])) {
+    const emails = people.filter(person => person.email);
+    if (!emails.length) return "Belum ada email pengguna atau penanggung jawab yang tercatat.";
+    return `Email yang tercatat:\n${emails.map(person => `- ${person.name}: ${person.email}`).join("\n")}`;
+  }
+
+  if (includesAny(normalized, ["laporan", "ringkasan laporan"])) {
+    if (!state.reports.length) return "Belum ada laporan yang dibuat pada sesi ini.";
+    return `Ada ${state.reports.length} laporan pada sesi ini. Laporan terbaru:\n${state.reports[0]}`;
+  }
+
+  if (includesAny(normalized, ["status", "jumlah status", "rekap status"])) {
+    const stats = buildStats(tasks);
+    return `Rekap status: total ${stats.total}, selesai ${stats.selesai}, proses ${stats.proses}, belum selesai ${stats.belumSelesai}, tertunda ${stats.tertunda}, dan terlambat ${stats.terlambat}.`;
+  }
+
   if (includesAny(normalized, ["kosong", "lengkap", "deadline belum", "data tugas"])) {
     const missingDeadline = active.filter(task => !task.deadline).length;
     const missingOwner = active.filter(task => !task.penanggungJawab).length;
@@ -380,14 +448,187 @@ function answerLocalAiQuestion(question) {
   }
 
   if (includesAny(normalized, ["bantuan", "bisa apa", "contoh", "help"])) {
-    return "Saya dapat menjawab: fokus hari ini, tugas terlambat, progres pekerjaan, beban anggota, tugas hari ini, dan data yang belum lengkap.";
+    return "Saya dapat membaca tugas, profil/orang, pembuat tugas, penanggung jawab, email, deadline, status, prioritas, catatan, laporan sesi, beban kerja, progres, dan data yang belum lengkap. Anda juga dapat menyebut nama tugas atau nama orang secara langsung.";
   }
 
-  return "Saya belum memahami pertanyaan itu. Coba gunakan kata: fokus, terlambat, progres, beban anggota, hari ini, atau data belum lengkap.";
+  return "Saya belum menemukan data yang cocok. Coba sebut nama tugas/orang, atau tanyakan: semua tugas, daftar orang, pemberi tugas, penanggung jawab, deadline, status, progres, terlambat, laporan, atau data belum lengkap.";
 }
 
 function includesAny(value, keywords) {
   return keywords.some(keyword => value.includes(keyword));
+}
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9@._\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findTasksFromQuestion(question, tasks) {
+  const genericWords = new Set([
+    "apa", "apakah", "siapa", "yang", "dan", "atau", "dengan", "tugas", "tentang",
+    "tolong", "beri", "berikan", "saya", "anda", "bisa", "data", "lihat", "cari",
+    "status", "deadline", "prioritas", "catatan", "penanggung", "jawab", "pemberi"
+  ]);
+  const tokens = question.split(" ").filter(token => token.length >= 3 && !genericWords.has(token));
+
+  return tasks
+    .map(task => {
+      const haystack = normalizeSearchText([
+        task.namaTugas,
+        task.catatan,
+        task.penanggungJawab,
+        task.emailPenanggungJawab,
+        task.dibuatOleh,
+        task.status,
+        task.prioritas,
+        task.deadline,
+        task.tanggal
+      ].join(" "));
+      const title = normalizeSearchText(task.namaTugas);
+      let score = question.includes(title) && title.length >= 3 ? 20 : 0;
+      tokens.forEach(token => {
+        if (title.includes(token)) score += 5;
+        else if (haystack.includes(token)) score += 1;
+      });
+      return { task, score };
+    })
+    .filter(item => item.score >= 3)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.task);
+}
+
+function buildPeopleDirectory(tasks) {
+  const map = new Map();
+
+  state.people.forEach(profile => {
+    const email = String(profile.email || "").trim().toLowerCase();
+    const key = profile.uid || email || normalizeSearchText(profile.displayName || profile.nickname);
+    if (!key) return;
+    map.set(key, {
+      uid: profile.uid || "",
+      name: profile.displayName || profile.nickname || email,
+      nickname: profile.nickname || "",
+      email,
+      gender: profile.gender || "",
+      role: profile.role || "",
+      bio: profile.bio || ""
+    });
+  });
+
+  tasks.forEach(task => {
+    addPersonToDirectory(map, task.dibuatOleh, "", task.ownerUid);
+    addPersonToDirectory(map, task.emailPenanggungJawab, task.penanggungJawab);
+    if (task.penanggungJawab && !task.emailPenanggungJawab) {
+      addPersonToDirectory(map, "", task.penanggungJawab);
+    }
+  });
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function addPersonToDirectory(map, emailValue, nameValue, uid = "") {
+  const email = String(emailValue || "").trim().toLowerCase();
+  const name = String(nameValue || "").trim();
+  const existingEntry = Array.from(map.entries()).find(([, person]) =>
+    (uid && person.uid === uid) || (email && person.email === email)
+  );
+  const key = existingEntry?.[0] || uid || email || normalizeSearchText(name);
+  if (!key) return;
+  const existing = existingEntry?.[1] || map.get(key) || {};
+  map.set(key, {
+    uid: existing.uid || uid,
+    name: existing.name || name || email,
+    nickname: existing.nickname || "",
+    email: existing.email || email,
+    gender: existing.gender || "",
+    role: existing.role || "",
+    bio: existing.bio || ""
+  });
+}
+
+function findPeopleFromQuestion(question, people) {
+  return people.filter(person => {
+    const values = [person.name, person.nickname, person.email, person.role]
+      .map(normalizeSearchText)
+      .filter(value => value.length >= 3);
+    return values.some(value => question.includes(value) ||
+      value.split(" ").some(part => part.length >= 3 && question.includes(part)));
+  });
+}
+
+function buildCreatorDirectory(tasks, people) {
+  const counts = new Map();
+  tasks.forEach(task => {
+    const email = String(task.dibuatOleh || "").trim().toLowerCase();
+    const key = task.ownerUid || email || "Tidak diketahui";
+    const person = people.find(item => (task.ownerUid && item.uid === task.ownerUid) || (email && item.email === email));
+    const current = counts.get(key) || {
+      name: person?.name || email || "Tidak diketahui",
+      email,
+      count: 0
+    };
+    current.count += 1;
+    counts.set(key, current);
+  });
+  return Array.from(counts.values()).sort((a, b) => b.count - a.count);
+}
+
+function formatTaskLine(task) {
+  return `- ${task.namaTugas} | ${task.status || "-"} | PJ: ${task.penanggungJawab || "belum diisi"} | Deadline: ${task.deadline || "belum diisi"}`;
+}
+
+function formatTaskDetails(task, people) {
+  aiContextTaskId = task.id;
+  const creator = people.find(person =>
+    (task.ownerUid && person.uid === task.ownerUid) ||
+    (task.dibuatOleh && person.email === String(task.dibuatOleh).toLowerCase())
+  );
+  return [
+    `Tugas: ${task.namaTugas}`,
+    `Status: ${task.status || "-"}`,
+    `Prioritas: ${task.prioritas || "-"}`,
+    `Tanggal: ${task.tanggal || "-"}`,
+    `Deadline: ${task.deadline || "belum diisi"}`,
+    `Penanggung jawab: ${task.penanggungJawab || "belum diisi"}`,
+    `Email PJ: ${task.emailPenanggungJawab || "belum diisi"}`,
+    `Dibuat oleh: ${creator?.name || task.dibuatOleh || "tidak diketahui"}`,
+    `Catatan: ${task.catatan || "tidak ada"}`
+  ].join("\n");
+}
+
+function formatTaskResponsibility(task, people) {
+  const person = people.find(item =>
+    (task.emailPenanggungJawab && item.email === String(task.emailPenanggungJawab).toLowerCase()) ||
+    normalizeSearchText(item.name) === normalizeSearchText(task.penanggungJawab)
+  );
+  return `Penanggung jawab tugas "${task.namaTugas}" adalah ${person?.name || task.penanggungJawab || "belum diisi"}${task.emailPenanggungJawab ? ` (${task.emailPenanggungJawab})` : ""}.`;
+}
+
+function formatPersonDetails(person, tasks) {
+  const assigned = tasks.filter(task =>
+    (person.email && String(task.emailPenanggungJawab || "").toLowerCase() === person.email) ||
+    normalizeSearchText(task.penanggungJawab) === normalizeSearchText(person.name) ||
+    normalizeSearchText(task.penanggungJawab) === normalizeSearchText(person.nickname)
+  );
+  const created = tasks.filter(task =>
+    (person.uid && task.ownerUid === person.uid) ||
+    (person.email && String(task.dibuatOleh || "").toLowerCase() === person.email)
+  );
+  return [
+    `Nama: ${person.name}`,
+    person.nickname ? `Panggilan: ${person.nickname}` : "",
+    person.email ? `Email: ${person.email}` : "",
+    person.role ? `Jabatan/Tim: ${person.role}` : "",
+    person.gender ? `Gender: ${person.gender}` : "",
+    person.bio ? `Tentang: ${person.bio}` : "",
+    `Tugas sebagai PJ: ${assigned.length}`,
+    `Tugas yang dibuat: ${created.length}`
+  ].filter(Boolean).join("\n");
 }
 
 function openProfileModal() {
@@ -540,6 +781,18 @@ function watchTasks() {
     state.syncMessage = "Firebase gagal dibaca. Menampilkan cadangan lokal.";
     render();
     alert(error.message);
+  });
+}
+
+function watchProfiles() {
+  unsubscribeProfiles = onSnapshot(query(collection(db, "profiles")), snapshot => {
+    state.people = snapshot.docs
+      .map(item => ({ uid: item.id, ...item.data() }))
+      .sort((a, b) => String(a.displayName || a.nickname || a.email || "")
+        .localeCompare(String(b.displayName || b.nickname || b.email || "")));
+    renderLocalAI();
+  }, () => {
+    state.people = currentProfile ? [{ uid: currentUser?.uid, ...currentProfile }] : [];
   });
 }
 
