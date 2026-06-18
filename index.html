@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619001500">
+  <link rel="stylesheet" href="styles.css?v=20260619010000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -130,10 +130,13 @@
 
     <main class="main">
       <header class="topbar">
-        <div>
+        <div class="topbar-title">
           <h1 id="pageTitle">Dashboard</h1>
           <p id="todayText"></p>
           <p id="syncStatus" class="sync-status hidden" aria-live="polite">Menunggu login...</p>
+        </div>
+        <div class="header-logos" aria-label="Logo perusahaan">
+          <img src="assets/company-logos.webp" alt="Logo PT Bemaco Rekaprima dan mitra">
         </div>
         <div class="top-actions">
           <input id="searchInput" type="search" placeholder="Cari tugas atau catatan">
@@ -194,6 +197,17 @@
             </div>
           </div>
           <aside class="right-panel">
+            <section class="panel ai-panel">
+              <div class="ai-panel-header">
+                <div>
+                  <span class="ai-kicker">AI Lokal</span>
+                  <h2>Asisten Pintar</h2>
+                </div>
+                <span class="local-badge">Tanpa API</span>
+              </div>
+              <div id="localAiSummary" class="ai-summary"></div>
+              <div id="localAiInsights" class="ai-insights"></div>
+            </section>
             <section class="panel">
               <h2>Fokus Hari Ini</h2>
               <div id="focusList" class="focus-list"></div>
@@ -393,7 +407,7 @@
     </form>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619001500"></script>
-  <script type="module" src="app.js?v=20260619001500"></script>
+  <script src="firebase-config.js?v=20260619010000"></script>
+  <script type="module" src="app.js?v=20260619010000"></script>
 </body>
 </html>

@@ -437,6 +437,7 @@ function render() {
   renderRecipients();
   renderAgenda();
   renderFocusList();
+  renderLocalAI();
   renderAttentionBanner();
   document.getElementById("todayText").textContent = `Hari ini: ${formatHumanDate(state.today)}`;
   document.getElementById("syncStatus").textContent = state.syncMessage;
@@ -559,6 +560,102 @@ function renderFocusList() {
         `;
       }).join("")
     : "<p>Tidak ada tugas yang perlu difokuskan.</p>";
+}
+
+function renderLocalAI() {
+  const summary = document.getElementById("localAiSummary");
+  const container = document.getElementById("localAiInsights");
+  if (!summary || !container) return;
+
+  const tasks = state.tasks.map(task => ({ ...task, terlambat: isOverdue(task) }));
+  const active = tasks.filter(task => task.status !== "Selesai");
+  const done = tasks.filter(task => task.status === "Selesai");
+  const ranked = active
+    .map(task => ({ task, score: getSmartTaskScore(task) }))
+    .sort((a, b) => b.score - a.score);
+  const topTask = ranked[0]?.task;
+  const completionRate = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0;
+
+  summary.textContent = topTask
+    ? `Fokus utama: ${topTask.namaTugas}. Skor prioritas ${getSmartTaskScore(topTask)} dari 100.`
+    : "Belum ada tugas aktif. Tambahkan tugas untuk mendapatkan rekomendasi otomatis.";
+
+  const missingDeadline = active.filter(task => !task.deadline).length;
+  const missingOwner = active.filter(task => !task.penanggungJawab).length;
+  const late = active.filter(task => task.terlambat).length;
+  const workload = buildWorkload(active);
+  const busiest = workload[0];
+  const insights = [];
+
+  if (late) {
+    insights.push({
+      type: "danger",
+      title: `${late} tugas terlambat`,
+      message: "Dahulukan tugas ini atau perbarui deadline agar agenda tetap realistis."
+    });
+  }
+
+  if (missingDeadline || missingOwner) {
+    insights.push({
+      type: "warning",
+      title: "Data perlu dilengkapi",
+      message: `${missingDeadline} tanpa deadline dan ${missingOwner} tanpa penanggung jawab.`
+    });
+  }
+
+  if (busiest && busiest.count >= 3) {
+    insights.push({
+      type: "warning",
+      title: `Beban tertinggi: ${busiest.owner}`,
+      message: `${busiest.count} tugas aktif. Pertimbangkan pembagian pekerjaan.`
+    });
+  }
+
+  if (tasks.length) {
+    insights.push({
+      type: completionRate >= 60 ? "success" : "",
+      title: `Penyelesaian ${completionRate}%`,
+      message: `${done.length} dari ${tasks.length} tugas telah selesai.`
+    });
+  }
+
+  if (!insights.length) {
+    insights.push({
+      type: "success",
+      title: "Kondisi pekerjaan baik",
+      message: "Tidak ada keterlambatan atau data penting yang kosong."
+    });
+  }
+
+  container.innerHTML = insights.slice(0, 4).map(insight => `
+    <div class="ai-insight ${insight.type}">
+      <span><strong>${escapeHtml(insight.title)}</strong><br>${escapeHtml(insight.message)}</span>
+    </div>
+  `).join("");
+}
+
+function getSmartTaskScore(task) {
+  let score = 10;
+  if (task.terlambat || isOverdue(task)) score += 45;
+  if (String(task.deadline || "").startsWith(state.today) || task.tanggal === state.today) score += 25;
+  if (task.prioritas === "Tinggi") score += 20;
+  if (task.prioritas === "Sedang") score += 10;
+  if (task.status === "Proses") score += 8;
+  if (!task.deadline) score += 5;
+  return Math.min(score, 100);
+}
+
+function buildWorkload(tasks) {
+  const counts = tasks.reduce((result, task) => {
+    const owner = String(task.penanggungJawab || "").trim();
+    if (!owner) return result;
+    result[owner] = (result[owner] || 0) + 1;
+    return result;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([owner, count]) => ({ owner, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 function renderAttentionBanner() {
