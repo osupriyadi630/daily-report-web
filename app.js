@@ -352,6 +352,7 @@ function answerLocalAiQuestion(question) {
   const late = active.filter(task => task.terlambat);
   const done = tasks.filter(task => task.status === "Selesai");
   const people = buildPeopleDirectory(tasks);
+  const liveContext = buildLiveAiContext(tasks, people);
   const matchedTasks = findTasksFromQuestion(normalized, tasks);
   const contextualTask = matchedTasks[0] ||
     tasks.find(task => task.id === aiContextTaskId) ||
@@ -455,10 +456,13 @@ function answerLocalAiQuestion(question) {
   }
 
   if (includesAny(normalized, ["bantuan", "bisa apa", "contoh", "help"])) {
-    return "Saya dapat membaca tugas, profil/orang, pembuat tugas, penanggung jawab, email, deadline, status, prioritas, catatan, laporan sesi, beban kerja, progres, dan data yang belum lengkap. Anda juga dapat menyebut nama tugas atau nama orang secara langsung.";
+    return `Saya membaca konteks aplikasi secara realtime. Saat ini tersedia ${liveContext.datasets.length} kelompok data (${liveContext.datasets.map(item => item.label).join(", ")}), ${liveContext.fields.length} jenis field, dan ${liveContext.interfaceItems.length} elemen menu/tampilan. Anda dapat menyebut nama data, field, tugas, orang, laporan, atau menu secara langsung.`;
   }
 
-  return "Saya belum menemukan data yang cocok. Coba sebut nama tugas/orang, atau tanyakan: semua tugas, daftar orang, pemberi tugas, penanggung jawab, deadline, status, progres, terlambat, laporan, atau data belum lengkap.";
+  const dynamicAnswer = answerFromLiveContext(normalized, liveContext);
+  if (dynamicAnswer) return dynamicAnswer;
+
+  return `Saya belum menemukan data yang cocok. Data yang terbaca saat ini: ${liveContext.datasets.map(item => item.label).join(", ")}. Field yang tersedia antara lain: ${liveContext.fields.slice(0, 12).join(", ")}. Coba gunakan nama data, field, menu, tugas, atau orang yang lebih spesifik.`;
 }
 
 function includesAny(value, keywords) {
@@ -485,17 +489,7 @@ function findTasksFromQuestion(question, tasks) {
 
   return tasks
     .map(task => {
-      const haystack = normalizeSearchText([
-        task.namaTugas,
-        task.catatan,
-        task.penanggungJawab,
-        task.emailPenanggungJawab,
-        task.dibuatOleh,
-        task.status,
-        task.prioritas,
-        task.deadline,
-        task.tanggal
-      ].join(" "));
+      const haystack = normalizeSearchText(objectSearchText(task));
       const title = normalizeSearchText(task.namaTugas);
       let score = question.includes(title) && title.length >= 3 ? 20 : 0;
       tokens.forEach(token => {
@@ -507,6 +501,138 @@ function findTasksFromQuestion(question, tasks) {
     .filter(item => item.score >= 3)
     .sort((a, b) => b.score - a.score)
     .map(item => item.task);
+}
+
+function buildLiveAiContext(tasks, people) {
+  const reports = state.reports.map((report, index) => ({
+    urutan: index + 1,
+    isi: report
+  }));
+  const datasets = [
+    { label: "Tugas", records: tasks },
+    { label: "Orang/Profil", records: people },
+    { label: "Laporan", records: reports }
+  ];
+  const fields = Array.from(new Set(datasets.flatMap(dataset =>
+    dataset.records.flatMap(record => Object.keys(record || {}))
+  ))).sort((a, b) => a.localeCompare(b));
+  const interfaceItems = Array.from(document.querySelectorAll(
+    "[data-view], nav button, .view h2, .view h3, .view label, .view th, .view button, .action-dropdown-menu button"
+  ))
+    .map(element => String(element.textContent || "").replace(/\s+/g, " ").trim())
+    .filter(text => text && text.toLowerCase() !== "x")
+    .filter((text, index, items) => items.indexOf(text) === index);
+
+  return {
+    datasets,
+    fields,
+    interfaceItems,
+    capturedAt: new Date()
+  };
+}
+
+function answerFromLiveContext(question, context) {
+  if (includesAny(question, ["menu", "fitur", "halaman", "tampilan", "elemen", "tombol", "navigasi"])) {
+    const matchedItems = rankTextMatches(question, context.interfaceItems);
+    const items = matchedItems.length ? matchedItems : context.interfaceItems;
+    return items.length
+      ? `Menu dan elemen aplikasi yang terbaca:\n${items.slice(0, 18).map(item => `- ${item}`).join("\n")}`
+      : "Belum ada menu atau elemen aplikasi yang dapat dibaca.";
+  }
+
+  if (includesAny(question, ["database", "penyimpanan", "firebase", "firestore", "google drive", "drive"])) {
+    const storageItems = context.interfaceItems.filter(item =>
+      includesAny(normalizeSearchText(item), ["database", "firebase", "firestore", "google drive", "drive", "folder"])
+    );
+    return [
+      "Penyimpanan aplikasi yang terbaca:",
+      "- Firebase Firestore menyimpan dan menyinkronkan data aplikasi.",
+      "- Google Drive disediakan sebagai lokasi penyimpanan file/dokumen.",
+      storageItems.length ? `Elemen terkait: ${storageItems.join(", ")}.` : ""
+    ].filter(Boolean).join("\n");
+  }
+
+  if (includesAny(question, ["field", "kolom", "jenis data", "struktur data", "elemen data", "data apa"])) {
+    return context.fields.length
+      ? `Struktur data yang terbaca realtime (${context.fields.length} field):\n${context.fields.map(field => `- ${humanizeFieldName(field)}`).join("\n")}`
+      : "Belum ada field data yang dapat dibaca.";
+  }
+
+  const tokens = getMeaningfulTokens(question);
+  if (!tokens.length) return "";
+
+  const matches = [];
+  context.datasets.forEach(dataset => {
+    dataset.records.forEach((record, index) => {
+      const searchable = normalizeSearchText(objectSearchText(record));
+      const score = tokens.reduce((total, token) => total + (searchable.includes(token) ? 1 : 0), 0);
+      if (score) matches.push({ dataset: dataset.label, record, index, score });
+    });
+  });
+
+  matches.sort((a, b) => b.score - a.score);
+  if (!matches.length) return "";
+
+  return `Saya menemukan ${matches.length} data yang berkaitan:\n${matches.slice(0, 8).map(match =>
+    `- ${match.dataset}: ${summarizeDynamicRecord(match.record, match.index)}`
+  ).join("\n")}`;
+}
+
+function getMeaningfulTokens(value) {
+  const ignored = new Set([
+    "apa", "apakah", "ada", "yang", "dan", "atau", "dari", "untuk", "dengan",
+    "saya", "anda", "bisa", "tolong", "beri", "berikan", "tentang", "disini",
+    "di", "ke", "ini", "itu", "semua", "data", "informasi"
+  ]);
+  return normalizeSearchText(value)
+    .split(" ")
+    .filter(token => token.length >= 3 && !ignored.has(token));
+}
+
+function objectSearchText(value, depth = 0) {
+  if (value == null || depth > 3) return "";
+  if (Array.isArray(value)) return value.map(item => objectSearchText(item, depth + 1)).join(" ");
+  if (typeof value === "object") {
+    if (typeof value.toDate === "function") return String(value.toDate());
+    return Object.entries(value)
+      .map(([key, item]) => `${humanizeFieldName(key)} ${objectSearchText(item, depth + 1)}`)
+      .join(" ");
+  }
+  return String(value);
+}
+
+function summarizeDynamicRecord(record, index) {
+  if (typeof record !== "object" || record == null) return String(record);
+  const preferredKeys = [
+    "namaTugas", "displayName", "nickname", "name", "email", "status",
+    "prioritas", "penanggungJawab", "deadline", "isi"
+  ];
+  const entries = Object.entries(record)
+    .filter(([, value]) => value != null && value !== "" && typeof value !== "object")
+    .sort(([keyA], [keyB]) => preferredKeys.indexOf(keyB) - preferredKeys.indexOf(keyA))
+    .slice(0, 6);
+  if (!entries.length) return `Data ${index + 1}`;
+  return entries.map(([key, value]) => `${humanizeFieldName(key)}: ${String(value)}`).join(" | ");
+}
+
+function humanizeFieldName(value) {
+  return String(value || "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function rankTextMatches(question, items) {
+  const tokens = getMeaningfulTokens(question);
+  return items
+    .map(item => ({
+      item,
+      score: tokens.reduce((total, token) =>
+        total + (normalizeSearchText(item).includes(token) ? 1 : 0), 0)
+    }))
+    .filter(result => result.score)
+    .sort((a, b) => b.score - a.score)
+    .map(result => result.item);
 }
 
 function buildPeopleDirectory(tasks) {
