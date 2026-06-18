@@ -72,6 +72,12 @@ function bindControls() {
   document.getElementById("profileDisplayName").addEventListener("input", updateProfilePreview);
   document.getElementById("profileNickname").addEventListener("input", updateProfilePreview);
   document.getElementById("actionMenuButton").addEventListener("click", toggleActionMenu);
+  document.getElementById("aiChatLauncher").addEventListener("click", openAiChat);
+  document.getElementById("closeAiChatButton").addEventListener("click", closeAiChat);
+  document.getElementById("aiChatForm").addEventListener("submit", handleAiChatSubmit);
+  document.querySelectorAll("[data-ai-question]").forEach(button => {
+    button.addEventListener("click", () => submitAiQuestion(button.dataset.aiQuestion));
+  });
   document.getElementById("newTaskButton").addEventListener("click", openTaskModal);
   document.getElementById("newTaskButtonTable").addEventListener("click", openTaskModal);
   document.getElementById("taskForm").addEventListener("submit", saveTask);
@@ -111,6 +117,7 @@ onAuthStateChanged(auth, async user => {
   document.getElementById("loadingView").classList.add("hidden");
   document.getElementById("authView").classList.toggle("hidden", !!user);
   document.getElementById("appView").classList.toggle("hidden", !user);
+  document.getElementById("aiChatLauncher").classList.toggle("hidden", !user);
 
   if (unsubscribeTasks) unsubscribeTasks();
 
@@ -289,6 +296,98 @@ function toggleActionMenu() {
 function closeActionMenu() {
   document.getElementById("actionDropdownMenu").classList.add("hidden");
   document.getElementById("actionMenuButton").setAttribute("aria-expanded", "false");
+}
+
+function openAiChat() {
+  if (!currentUser) return;
+  document.getElementById("aiChatModal").showModal();
+  window.setTimeout(() => document.getElementById("aiChatInput").focus(), 60);
+}
+
+function closeAiChat() {
+  document.getElementById("aiChatModal").close();
+}
+
+function handleAiChatSubmit(event) {
+  event.preventDefault();
+  const input = document.getElementById("aiChatInput");
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = "";
+  submitAiQuestion(question);
+}
+
+function submitAiQuestion(question) {
+  appendAiChatMessage(question, "user");
+  const answer = answerLocalAiQuestion(question);
+  window.setTimeout(() => appendAiChatMessage(answer, "assistant"), 180);
+}
+
+function appendAiChatMessage(message, role) {
+  const container = document.getElementById("aiChatMessages");
+  const article = document.createElement("article");
+  article.className = `chat-message ${role}`;
+  article.textContent = message;
+  container.appendChild(article);
+  container.scrollTop = container.scrollHeight;
+}
+
+function answerLocalAiQuestion(question) {
+  const normalized = String(question).toLowerCase();
+  const tasks = state.tasks.map(task => ({ ...task, terlambat: isOverdue(task) }));
+  const active = tasks.filter(task => task.status !== "Selesai");
+  const late = active.filter(task => task.terlambat);
+  const done = tasks.filter(task => task.status === "Selesai");
+  const ranked = active
+    .map(task => ({ task, score: getSmartTaskScore(task) }))
+    .sort((a, b) => b.score - a.score);
+  const top = ranked[0];
+
+  if (includesAny(normalized, ["fokus", "prioritas", "kerjakan dulu", "utama"])) {
+    if (!top) return "Belum ada tugas aktif yang perlu diprioritaskan.";
+    return `Fokus utama adalah "${top.task.namaTugas}" dengan skor ${top.score}/100. Status: ${top.task.status}. Deadline: ${top.task.deadline || "belum diisi"}.`;
+  }
+
+  if (includesAny(normalized, ["terlambat", "telat", "lewat deadline"])) {
+    if (!late.length) return "Tidak ada tugas yang terlambat saat ini.";
+    return `Ada ${late.length} tugas terlambat:\n${late.slice(0, 5).map(task => `- ${task.namaTugas} (${task.penanggungJawab || "PJ belum diisi"})`).join("\n")}`;
+  }
+
+  if (includesAny(normalized, ["progres", "progress", "selesai", "persentase"])) {
+    const rate = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0;
+    return `Progres penyelesaian ${rate}%. ${done.length} dari ${tasks.length} tugas sudah selesai, dan ${active.length} masih aktif.`;
+  }
+
+  if (includesAny(normalized, ["beban", "penanggung jawab", "pj", "anggota", "tim"])) {
+    const workload = buildWorkload(active);
+    if (!workload.length) return "Belum ada data penanggung jawab pada tugas aktif.";
+    return `Beban tugas aktif:\n${workload.slice(0, 6).map(item => `- ${item.owner}: ${item.count} tugas`).join("\n")}`;
+  }
+
+  if (includesAny(normalized, ["kosong", "lengkap", "deadline belum", "data tugas"])) {
+    const missingDeadline = active.filter(task => !task.deadline).length;
+    const missingOwner = active.filter(task => !task.penanggungJawab).length;
+    const missingEmail = active.filter(task => !task.emailPenanggungJawab).length;
+    return `Pemeriksaan data aktif: ${missingDeadline} tanpa deadline, ${missingOwner} tanpa penanggung jawab, dan ${missingEmail} tanpa email penanggung jawab.`;
+  }
+
+  if (includesAny(normalized, ["hari ini", "today"])) {
+    const todayTasks = active.filter(task =>
+      task.tanggal === state.today || String(task.deadline || "").startsWith(state.today)
+    );
+    if (!todayTasks.length) return "Tidak ada tugas aktif yang dijadwalkan atau memiliki deadline hari ini.";
+    return `Tugas hari ini:\n${todayTasks.slice(0, 6).map(task => `- ${task.namaTugas} (${task.status})`).join("\n")}`;
+  }
+
+  if (includesAny(normalized, ["bantuan", "bisa apa", "contoh", "help"])) {
+    return "Saya dapat menjawab: fokus hari ini, tugas terlambat, progres pekerjaan, beban anggota, tugas hari ini, dan data yang belum lengkap.";
+  }
+
+  return "Saya belum memahami pertanyaan itu. Coba gunakan kata: fokus, terlambat, progres, beban anggota, hari ini, atau data belum lengkap.";
+}
+
+function includesAny(value, keywords) {
+  return keywords.some(keyword => value.includes(keyword));
 }
 
 function openProfileModal() {

@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619014500">
+  <link rel="stylesheet" href="styles.css?v=20260619093000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -173,22 +173,6 @@
           <article class="stat-card red"><span>Terlambat</span><strong id="statLate">0</strong></article>
         </section>
 
-        <section class="toolbar">
-          <div class="segments">
-            <button class="segment active" data-filter="all">Semua</button>
-            <button class="segment" data-filter="today">Hari Ini</button>
-            <button class="segment" data-filter="late">Terlambat</button>
-          </div>
-          <select id="statusFilter">
-            <option value="all">Semua Status</option>
-            <option>Belum Selesai</option>
-            <option>Proses</option>
-            <option>Selesai</option>
-            <option>Tertunda</option>
-          </select>
-          <button class="secondary-button" id="createReportButton">Buat Laporan</button>
-        </section>
-
         <section class="content-grid">
           <div class="board">
             <div class="column" data-status="Belum Selesai">
@@ -205,13 +189,24 @@
             </div>
           </div>
           <aside class="right-panel">
+            <section class="toolbar right-toolbar">
+              <div class="segments">
+                <button class="segment active" data-filter="all">Semua</button>
+                <button class="segment" data-filter="today">Hari Ini</button>
+                <button class="segment" data-filter="late">Terlambat</button>
+              </div>
+              <select id="statusFilter">
+                <option value="all">Semua Status</option>
+                <option>Belum Selesai</option>
+                <option>Proses</option>
+                <option>Selesai</option>
+                <option>Tertunda</option>
+              </select>
+              <button class="secondary-button" id="createReportButton">Buat Laporan</button>
+            </section>
             <section class="panel ai-panel">
               <div class="ai-panel-header">
-                <div>
-                  <span class="ai-kicker">AI Lokal</span>
-                  <h2>Asisten Pintar</h2>
-                </div>
-                <span class="local-badge">Tanpa API</span>
+                <h2>AI</h2>
               </div>
               <div id="localAiSummary" class="ai-summary"></div>
               <div id="localAiInsights" class="ai-insights"></div>
@@ -415,7 +410,38 @@
     </form>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619014500"></script>
-  <script type="module" src="app.js?v=20260619014500"></script>
+  <button class="ai-chat-launcher hidden" id="aiChatLauncher" type="button" aria-label="Buka percakapan AI">
+    <span class="chat-icon" aria-hidden="true"></span>
+    <span>Chat</span>
+  </button>
+
+  <dialog id="aiChatModal" class="ai-chat-dialog">
+    <section class="ai-chat-card">
+      <header>
+        <div>
+          <h2>Chat AI</h2>
+          <p>Analisis lokal berdasarkan data tugas.</p>
+        </div>
+        <button type="button" class="icon-button" id="closeAiChatButton">x</button>
+      </header>
+      <div class="ai-chat-messages" id="aiChatMessages" aria-live="polite">
+        <article class="chat-message assistant">
+          Halo. Saya dapat membantu memeriksa fokus hari ini, keterlambatan, progres, beban anggota, dan kelengkapan tugas.
+        </article>
+      </div>
+      <div class="ai-chat-suggestions">
+        <button type="button" data-ai-question="Apa fokus hari ini?">Fokus hari ini</button>
+        <button type="button" data-ai-question="Tugas apa yang terlambat?">Tugas terlambat</button>
+        <button type="button" data-ai-question="Bagaimana progres pekerjaan?">Progres</button>
+      </div>
+      <form id="aiChatForm" class="ai-chat-form">
+        <input id="aiChatInput" autocomplete="off" placeholder="Tanyakan tentang tugas...">
+        <button class="primary-button" type="submit">Kirim</button>
+      </form>
+    </section>
+  </dialog>
+
+  <script src="firebase-config.js?v=20260619093000"></script>
+  <script type="module" src="app.js?v=20260619093000"></script>
 </body>
 </html>
