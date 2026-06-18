@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619103000">
+  <link rel="stylesheet" href="styles.css?v=20260619113000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -272,9 +272,20 @@
         <section class="settings-grid">
           <article class="panel">
             <h2>Pilih Penerima</h2>
-            <p>Pilih email penanggung jawab yang akan menerima reminder.</p>
-            <div id="recipientList" class="recipient-list"></div>
-            <button class="primary-button" id="sendSelectedButton">Kirim ke Email Terpilih</button>
+            <p>Cari nama atau email penanggung jawab yang akan menerima reminder.</p>
+            <div class="recipient-combobox" id="recipientCombobox">
+              <label for="recipientSearch">Penerima reminder</label>
+              <div class="combobox-control">
+                <input id="recipientSearch" type="text" autocomplete="off" placeholder="Cari nama atau email..." aria-expanded="false" aria-controls="recipientList">
+                <button type="button" id="recipientToggleButton" aria-label="Buka pilihan penerima">
+                  <span class="combobox-chevron" aria-hidden="true"></span>
+                </button>
+              </div>
+              <input type="hidden" id="selectedRecipientEmail">
+              <div id="recipientList" class="recipient-list hidden" role="listbox"></div>
+              <p id="recipientSelectionHint" class="recipient-selection-hint">Belum ada penerima dipilih.</p>
+            </div>
+            <button class="primary-button" id="sendSelectedButton">Kirim ke Penerima</button>
           </article>
           <article class="panel">
             <h2>Email Bridge</h2>
@@ -441,7 +452,7 @@
     </section>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619103000"></script>
-  <script type="module" src="app.js?v=20260619103000"></script>
+  <script src="firebase-config.js?v=20260619113000"></script>
+  <script type="module" src="app.js?v=20260619113000"></script>
 </body>
 </html>

@@ -47,7 +47,8 @@ let state = {
   filter: "all",
   activeView: "dashboard",
   syncMessage: "Menunggu login...",
-  authMode: "login"
+  authMode: "login",
+  selectedRecipientEmail: ""
 };
 
 const statusToList = {
@@ -91,6 +92,10 @@ function bindControls() {
   document.getElementById("exportCsvButton").addEventListener("click", exportTasksCsv);
   document.getElementById("sendAllButton").addEventListener("click", sendAllReminders);
   document.getElementById("sendSelectedButton").addEventListener("click", sendSelectedReminders);
+  document.getElementById("recipientSearch").addEventListener("focus", openRecipientCombobox);
+  document.getElementById("recipientSearch").addEventListener("input", handleRecipientInput);
+  document.getElementById("recipientToggleButton").addEventListener("click", toggleRecipientCombobox);
+  document.getElementById("recipientSearch").addEventListener("keydown", handleRecipientKeydown);
   document.getElementById("closePreviewModalButton").addEventListener("click", closePreviewModal);
   document.getElementById("closePreviewFooterButton").addEventListener("click", closePreviewModal);
   document.getElementById("searchInput").addEventListener("input", render);
@@ -151,6 +156,8 @@ document.addEventListener("click", event => {
   if (!profileWrap) closeProfileMenu();
   const actionDropdown = event.target.closest(".action-dropdown");
   if (!actionDropdown) closeActionMenu();
+  const recipientCombobox = event.target.closest(".recipient-combobox");
+  if (!recipientCombobox) closeRecipientCombobox();
 });
 
 function setAuthMode(mode) {
@@ -791,6 +798,7 @@ function watchProfiles() {
       .sort((a, b) => String(a.displayName || a.nickname || a.email || "")
         .localeCompare(String(b.displayName || b.nickname || b.email || "")));
     renderLocalAI();
+    renderRecipients();
   }, () => {
     state.people = currentProfile ? [{ uid: currentUser?.uid, ...currentProfile }] : [];
   });
@@ -888,16 +896,139 @@ function renderReports() {
 }
 
 function renderRecipients() {
+  const options = getRecipientOptions();
+  if (state.selectedRecipientEmail && !options.some(item => item.email === state.selectedRecipientEmail)) {
+    state.selectedRecipientEmail = "";
+    document.getElementById("selectedRecipientEmail").value = "";
+    document.getElementById("recipientSearch").value = "";
+  }
+  updateRecipientSelectionHint(options);
+  renderRecipientOptions();
+}
+
+function getRecipientOptions() {
+  const tasks = state.tasks;
+  const people = buildPeopleDirectory(tasks);
+  const map = new Map();
+
+  people.filter(person => person.email).forEach(person => {
+    const email = person.email.toLowerCase();
+    map.set(email, {
+      name: person.name || person.nickname || email,
+      email,
+      role: person.role || "",
+      taskCount: tasks.filter(task =>
+        String(task.emailPenanggungJawab || "").trim().toLowerCase() === email &&
+        task.status !== "Selesai"
+      ).length
+    });
+  });
+
+  tasks.forEach(task => {
+    const email = String(task.emailPenanggungJawab || "").trim().toLowerCase();
+    if (!email) return;
+    const existing = map.get(email);
+    map.set(email, {
+      name: existing?.name || task.penanggungJawab || email,
+      email,
+      role: existing?.role || "",
+      taskCount: tasks.filter(item =>
+        String(item.emailPenanggungJawab || "").trim().toLowerCase() === email &&
+        item.status !== "Selesai"
+      ).length
+    });
+  });
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function renderRecipientOptions() {
   const list = document.getElementById("recipientList");
-  const recipients = [...new Set(state.tasks.map(task => String(task.emailPenanggungJawab || "").trim()).filter(Boolean))].sort();
-  list.innerHTML = recipients.length
-    ? recipients.map(email => `
-        <label class="check-row">
-          <input type="checkbox" value="${escapeHtml(email)}" checked>
-          <span>${escapeHtml(email)}</span>
-        </label>
+  const keyword = normalizeSearchText(document.getElementById("recipientSearch").value);
+  const options = getRecipientOptions().filter(item => {
+    if (!keyword) return true;
+    return normalizeSearchText(`${item.name} ${item.email} ${item.role}`).includes(keyword);
+  });
+
+  list.innerHTML = options.length
+    ? options.map(item => `
+        <button class="recipient-option ${item.email === state.selectedRecipientEmail ? "active" : ""}"
+                type="button"
+                role="option"
+                aria-selected="${item.email === state.selectedRecipientEmail}"
+                data-recipient-email="${escapeHtml(item.email)}">
+          <span class="recipient-option-copy">
+            <strong>${escapeHtml(item.name)}</strong>
+            <small>${escapeHtml(item.email)}${item.role ? ` - ${escapeHtml(item.role)}` : ""} - ${item.taskCount} tugas aktif</small>
+          </span>
+          <span class="recipient-option-check">${item.email === state.selectedRecipientEmail ? "✓" : ""}</span>
+        </button>
       `).join("")
-    : "<p>Belum ada email penanggung jawab pada tugas.</p>";
+    : '<div class="recipient-empty">Nama atau email tidak ditemukan.</div>';
+
+  list.querySelectorAll("[data-recipient-email]").forEach(button => {
+    button.addEventListener("click", () => selectRecipient(button.dataset.recipientEmail));
+  });
+}
+
+function handleRecipientInput() {
+  state.selectedRecipientEmail = "";
+  document.getElementById("selectedRecipientEmail").value = "";
+  updateRecipientSelectionHint([]);
+  openRecipientCombobox();
+}
+
+function selectRecipient(email) {
+  const option = getRecipientOptions().find(item => item.email === email);
+  if (!option) return;
+  state.selectedRecipientEmail = option.email;
+  document.getElementById("selectedRecipientEmail").value = option.email;
+  document.getElementById("recipientSearch").value = option.name;
+  updateRecipientSelectionHint([option]);
+  closeRecipientCombobox();
+}
+
+function updateRecipientSelectionHint(options = getRecipientOptions()) {
+  const selected = options.find(item => item.email === state.selectedRecipientEmail) ||
+    getRecipientOptions().find(item => item.email === state.selectedRecipientEmail);
+  document.getElementById("recipientSelectionHint").textContent = selected
+    ? `${selected.name} - ${selected.email} - ${selected.taskCount} tugas aktif`
+    : "Belum ada penerima dipilih.";
+}
+
+function openRecipientCombobox() {
+  document.getElementById("recipientList").classList.remove("hidden");
+  document.getElementById("recipientSearch").setAttribute("aria-expanded", "true");
+  renderRecipientOptions();
+}
+
+function closeRecipientCombobox() {
+  document.getElementById("recipientList").classList.add("hidden");
+  document.getElementById("recipientSearch").setAttribute("aria-expanded", "false");
+}
+
+function toggleRecipientCombobox() {
+  const list = document.getElementById("recipientList");
+  if (list.classList.contains("hidden")) openRecipientCombobox();
+  else closeRecipientCombobox();
+}
+
+function handleRecipientKeydown(event) {
+  if (event.key === "Escape") {
+    closeRecipientCombobox();
+    return;
+  }
+  if (event.key === "Enter") {
+    const options = getRecipientOptions().filter(item =>
+      normalizeSearchText(`${item.name} ${item.email}`).includes(
+        normalizeSearchText(document.getElementById("recipientSearch").value)
+      )
+    );
+    if (options.length === 1) {
+      event.preventDefault();
+      selectRecipient(options[0].email);
+    }
+  }
 }
 
 function renderAgenda() {
@@ -1304,10 +1435,14 @@ function sendAllReminders() {
 }
 
 function sendSelectedReminders() {
-  const recipients = Array.from(document.querySelectorAll("#recipientList input:checked")).map(input => input.value);
-  if (!recipients.length) return alert("Pilih minimal satu email penerima.");
-  const tasks = state.tasks.filter(task => recipients.includes(task.emailPenanggungJawab));
-  sendEmail(tasks, recipients);
+  const email = state.selectedRecipientEmail || document.getElementById("selectedRecipientEmail").value;
+  if (!email) return alert("Pilih nama atau email penerima terlebih dahulu.");
+  const tasks = state.tasks.filter(task =>
+    String(task.emailPenanggungJawab || "").trim().toLowerCase() === email.toLowerCase() &&
+    task.status !== "Selesai"
+  );
+  if (!tasks.length) return alert("Penerima ini belum memiliki tugas aktif untuk dikirim.");
+  sendEmail(tasks, [email]);
 }
 
 function sendEmail(tasks, recipients) {
