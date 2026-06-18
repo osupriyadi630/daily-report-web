@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619113000">
+  <link rel="stylesheet" href="styles.css?v=20260619123000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -287,13 +287,27 @@
             </div>
             <button class="primary-button" id="sendSelectedButton">Kirim ke Penerima</button>
           </article>
-          <article class="panel">
-            <h2>Email Bridge</h2>
-            <p id="emailBridgeStatus">Memeriksa konfigurasi...</p>
-          </article>
-          <article class="panel">
+          <article class="panel storage-panel">
             <h2>Database</h2>
-            <p>Data tugas tersimpan bersama di Firebase Firestore dan dapat dilihat semua akun yang diizinkan.</p>
+            <div class="storage-list">
+              <section class="storage-item">
+                <span class="storage-icon firebase-storage-icon">F</span>
+                <div>
+                  <strong>Firebase Firestore</strong>
+                  <p>Data tugas dan profil tersimpan bersama serta dapat dilihat akun yang diizinkan.</p>
+                </div>
+              </section>
+              <section class="storage-item">
+                <span class="storage-icon drive-storage-icon">D</span>
+                <div>
+                  <strong>Google Drive</strong>
+                  <p>Folder untuk menyimpan dokumen, lampiran, laporan, atau file pendukung pekerjaan.</p>
+                  <a class="drive-link" href="https://drive.google.com/drive/folders/1d5-UJScndg70lIXMvM4DrqxAMEOCqkXR?usp=sharing" target="_blank" rel="noopener noreferrer">
+                    Buka Folder Google Drive
+                  </a>
+                </div>
+              </section>
+            </div>
           </article>
         </section>
       </section>
@@ -452,7 +466,7 @@
     </section>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619113000"></script>
-  <script type="module" src="app.js?v=20260619113000"></script>
+  <script src="firebase-config.js?v=20260619123000"></script>
+  <script type="module" src="app.js?v=20260619123000"></script>
 </body>
 </html>

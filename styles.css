@@ -1147,9 +1147,70 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 .report-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; color: var(--muted); }
 pre { overflow: auto; margin: 0; padding: 12px; border-radius: 8px; background: var(--surface-soft); color: var(--text); white-space: pre-wrap; font: inherit; line-height: 1.5; }
 
-.settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.settings-grid { display: grid; grid-template-columns: minmax(300px, 0.85fr) minmax(420px, 1.15fr); gap: 16px; }
 .check-row { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff; color: var(--text); }
 .check-row input { width: auto; box-shadow: none; }
+
+.storage-panel { min-width: 0; }
+.storage-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.storage-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.storage-item > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.storage-item p {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.storage-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 7px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.firebase-storage-icon { background: #f59e0b; }
+.drive-storage-icon { background: #16a34a; }
+
+.drive-link {
+  width: fit-content;
+  margin-top: 3px;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: #e8f5e9;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.drive-link:hover {
+  background: #dcfce7;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 .recipient-combobox {
   position: relative;

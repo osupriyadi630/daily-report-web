@@ -817,9 +817,6 @@ function render() {
   renderAttentionBanner();
   document.getElementById("todayText").textContent = `Hari ini: ${formatHumanDate(state.today)}`;
   document.getElementById("syncStatus").textContent = state.syncMessage;
-  document.getElementById("emailBridgeStatus").textContent = window.EMAIL_BRIDGE_URL
-    ? "Email bridge aktif. Pengiriman email memakai Apps Script."
-    : "Belum aktif. Tombol email akan membuka aplikasi email melalui mailto.";
 }
 
 function setView(view) {
