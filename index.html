@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619010000">
+  <link rel="stylesheet" href="styles.css?v=20260619014500">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -136,13 +136,21 @@
           <p id="syncStatus" class="sync-status hidden" aria-live="polite">Menunggu login...</p>
         </div>
         <div class="header-logos" aria-label="Logo perusahaan">
-          <img src="assets/company-logos.webp" alt="Logo PT Bemaco Rekaprima dan mitra">
+          <img src="assets/company-logos-transparent.webp" alt="Logo PT Bemaco Rekaprima dan mitra">
         </div>
         <div class="top-actions">
           <input id="searchInput" type="search" placeholder="Cari tugas atau catatan">
-          <button class="secondary-button" id="exportCsvButton">Export CSV</button>
-          <button class="secondary-button" id="sendAllButton">Kirim Reminder</button>
-          <button class="primary-button" id="newTaskButton">+ Tugas Baru</button>
+          <div class="action-dropdown">
+            <button class="secondary-button action-dropdown-button" id="actionMenuButton" type="button" aria-expanded="false">
+              Pilihan
+              <span class="dropdown-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="action-dropdown-menu hidden" id="actionDropdownMenu" role="menu">
+              <button type="button" id="newTaskButton" role="menuitem">+ Tugas Baru</button>
+              <button type="button" id="sendAllButton" role="menuitem">Kirim Reminder</button>
+              <button type="button" id="exportCsvButton" role="menuitem">Export sebagai CSV...</button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -407,7 +415,7 @@
     </form>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619010000"></script>
-  <script type="module" src="app.js?v=20260619010000"></script>
+  <script src="firebase-config.js?v=20260619014500"></script>
+  <script type="module" src="app.js?v=20260619014500"></script>
 </body>
 </html>

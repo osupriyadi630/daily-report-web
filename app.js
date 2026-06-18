@@ -71,6 +71,7 @@ function bindControls() {
   document.getElementById("closeWelcomeToast").addEventListener("click", hideWelcomeToast);
   document.getElementById("profileDisplayName").addEventListener("input", updateProfilePreview);
   document.getElementById("profileNickname").addEventListener("input", updateProfilePreview);
+  document.getElementById("actionMenuButton").addEventListener("click", toggleActionMenu);
   document.getElementById("newTaskButton").addEventListener("click", openTaskModal);
   document.getElementById("newTaskButtonTable").addEventListener("click", openTaskModal);
   document.getElementById("taskForm").addEventListener("submit", saveTask);
@@ -135,6 +136,8 @@ onAuthStateChanged(auth, async user => {
 document.addEventListener("click", event => {
   const profileWrap = event.target.closest(".sidebar-profile-wrap");
   if (!profileWrap) closeProfileMenu();
+  const actionDropdown = event.target.closest(".action-dropdown");
+  if (!actionDropdown) closeActionMenu();
 });
 
 function setAuthMode(mode) {
@@ -273,6 +276,19 @@ function toggleProfileMenu() {
 function closeProfileMenu() {
   document.getElementById("profilePopover").classList.add("hidden");
   document.getElementById("profileMenuButton").setAttribute("aria-expanded", "false");
+}
+
+function toggleActionMenu() {
+  const menu = document.getElementById("actionDropdownMenu");
+  const button = document.getElementById("actionMenuButton");
+  const willOpen = menu.classList.contains("hidden");
+  menu.classList.toggle("hidden", !willOpen);
+  button.setAttribute("aria-expanded", String(willOpen));
+}
+
+function closeActionMenu() {
+  document.getElementById("actionDropdownMenu").classList.add("hidden");
+  document.getElementById("actionMenuButton").setAttribute("aria-expanded", "false");
 }
 
 function openProfileModal() {
@@ -769,6 +785,7 @@ function bindTaskAction(button, runNow = false) {
 }
 
 function openTaskModal() {
+  closeActionMenu();
   document.getElementById("modalTitle").textContent = "Tugas Baru";
   document.getElementById("taskId").value = "";
   document.getElementById("taskName").value = "";
@@ -927,6 +944,7 @@ function sendTaskEmail(id) {
 }
 
 function sendAllReminders() {
+  closeActionMenu();
   const tasks = state.tasks.filter(task => task.status !== "Selesai" && (task.tanggal === state.today || isOverdue(task)));
   const recipients = [...new Set(tasks.map(task => task.emailPenanggungJawab).filter(Boolean))];
   if (!recipients.length) return alert("Belum ada email penanggung jawab pada tugas aktif.");
@@ -986,6 +1004,7 @@ function createReport() {
 }
 
 function exportTasksCsv() {
+  closeActionMenu();
   const tasks = getFilteredTasks(false);
   if (!tasks.length) return alert("Belum ada tugas untuk diekspor.");
 

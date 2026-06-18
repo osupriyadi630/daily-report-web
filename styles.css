@@ -301,7 +301,9 @@ button { cursor: pointer; }
 .app-shell {
   position: relative;
   display: block;
+  height: 100dvh;
   min-height: 100vh;
+  overflow: hidden;
   isolation: isolate;
 }
 
@@ -460,9 +462,12 @@ button { cursor: pointer; }
 
 .main {
   margin-left: 260px;
-  min-height: 100vh;
+  height: 100dvh;
   padding: 28px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   background: transparent;
 }
 
@@ -495,9 +500,7 @@ button { cursor: pointer; }
   min-width: 190px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  background: transparent;
 }
 
 .header-logos img {
@@ -516,6 +519,63 @@ button { cursor: pointer; }
 .topbar .top-actions #searchInput {
   flex: 1 1 260px;
 }
+
+.action-dropdown {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.action-dropdown-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 112px;
+}
+
+.dropdown-chevron {
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(45deg) translateY(2px);
+  transition: transform 160ms ease;
+}
+
+.action-dropdown-button[aria-expanded="true"] .dropdown-chevron {
+  transform: rotate(225deg) translate(-2px, -1px);
+}
+
+.action-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  display: grid;
+  width: 220px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: #202127;
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.28);
+}
+
+.action-dropdown-menu button {
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 14px;
+  background: transparent;
+  color: #f8fafc;
+  font-weight: 700;
+  text-align: left;
+}
+
+.action-dropdown-menu button:hover,
+.action-dropdown-menu button:focus-visible {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.action-dropdown-menu button:last-child { border-bottom: 0; }
 
 .topbar + .view {
   margin-bottom: 22px;
@@ -1032,7 +1092,7 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .brand-row.compact { gap: 9px; }
   .brand-row.compact .brand-mark { width: 38px; height: 38px; }
   .brand-row.compact small { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .main { margin-left: 220px; padding: 22px 18px; }
+  .main { margin-left: 220px; height: 100dvh; padding: 22px 18px; }
   .topbar {
     flex-wrap: wrap;
     margin: -22px -18px 18px;
@@ -1053,8 +1113,12 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 @media (max-width: 760px) {
   body { overflow-x: hidden; }
   .app-shell {
-    display: block;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100svh;
+    min-height: 0;
     min-width: 0;
+    overflow: hidden;
   }
 
   .app-shell::before {
@@ -1065,7 +1129,7 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   }
 
   .sidebar {
-    position: sticky;
+    position: relative;
     top: 0;
     z-index: 40;
     display: grid;
@@ -1144,16 +1208,20 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .main {
     margin-left: 0;
     width: 100%;
+    height: auto;
+    min-height: 0;
     min-width: 0;
     padding: 16px 12px calc(24px + env(safe-area-inset-bottom));
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
 
   h1 { font-size: 24px; }
   .topbar { margin-bottom: 16px; }
   .topbar {
     position: sticky;
-    top: 106px;
+    top: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
@@ -1170,26 +1238,36 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .header-logos img { height: 42px; }
   .topbar .top-actions {
     grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     order: initial;
     max-width: none;
   }
   .sync-status { font-size: 11px; line-height: 1.4; }
 
   .top-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
     gap: 8px;
   }
 
-  .top-actions #searchInput { grid-column: 1 / -1; }
-  .top-actions .primary-button { grid-column: 1 / -1; }
-  .top-actions > * {
-    width: 100%;
+  .top-actions #searchInput { grid-column: auto; }
+  .top-actions > input,
+  .top-actions > button {
     min-width: 0;
     min-height: 42px;
     padding: 9px 8px;
     font-size: 12px;
+  }
+
+  .action-dropdown { width: auto; }
+  .action-dropdown-button { width: 108px; min-height: 42px; }
+  .action-dropdown-menu {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 16px;
+    left: 12px;
+    width: auto;
   }
 
   .loading-main { padding: 16px; }
@@ -1278,13 +1356,11 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 @media (max-width: 390px) {
   .brand-row.compact small { max-width: 145px; }
   .nav-item { font-size: 10px; }
-  .top-actions { grid-template-columns: 1fr; }
-  .top-actions #searchInput,
-  .top-actions .primary-button { grid-column: auto; }
-  .topbar { grid-template-columns: 1fr; top: 106px; }
+  .topbar { grid-template-columns: 1fr; top: 0; }
   .header-logos {
     width: 100%;
     max-width: 210px;
     justify-self: start;
   }
+  .topbar .top-actions { grid-template-columns: minmax(0, 1fr) auto; }
 }
