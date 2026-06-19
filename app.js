@@ -124,7 +124,12 @@ let state = {
   personnelWorkFilter: "all",
   personnelSort: "name-asc",
   personnelPage: 1,
-  personnelPageSize: 25
+  personnelPageSize: 25,
+  jobsSearch: "",
+  jobsSort: "name-asc",
+  jobsPage: 1,
+  jobsPageSize: 25,
+  jobsVisibleRecords: []
 };
 
 const statusToList = {
@@ -216,6 +221,32 @@ function bindControls() {
   document.getElementById("personnelForm").addEventListener("submit", savePersonnelRecord);
   document.getElementById("closePersonnelFormButton").addEventListener("click", closePersonnelForm);
   document.getElementById("cancelPersonnelFormButton").addEventListener("click", closePersonnelForm);
+  document.getElementById("jobsSearch").addEventListener("input", event => {
+    state.jobsSearch = event.target.value;
+    state.jobsPage = 1;
+    renderJobs();
+  });
+  document.getElementById("jobsSort").addEventListener("change", event => {
+    state.jobsSort = event.target.value;
+    state.jobsPage = 1;
+    renderJobs();
+  });
+  document.getElementById("jobsPageSize").addEventListener("change", event => {
+    state.jobsPageSize = Number(event.target.value) || 25;
+    state.jobsPage = 1;
+    renderJobs();
+  });
+  document.getElementById("refreshJobsButton").addEventListener("click", loadExternalSheetData);
+  document.getElementById("jobsToolsButton").addEventListener("click", toggleJobsToolsMenu);
+  document.getElementById("addJobButton").addEventListener("click", addJobFromPrompt);
+  document.getElementById("exportJobsPdfButton").addEventListener("click", exportJobsPdf);
+  document.getElementById("exportJobsExcelButton").addEventListener("click", exportJobsExcel);
+  document.getElementById("resetJobsFilters").addEventListener("click", resetJobsFilters);
+  document.getElementById("jobsPrevPage").addEventListener("click", () => changeJobsPage(-1));
+  document.getElementById("jobsNextPage").addEventListener("click", () => changeJobsPage(1));
+  document.getElementById("jobsTableBody").addEventListener("click", handleJobsTableClick);
+  document.getElementById("closeJobDetailButton").addEventListener("click", closeJobDetail);
+  document.getElementById("closeJobDetailFooter").addEventListener("click", closeJobDetail);
   document.getElementById("taskDate").addEventListener("input", event => closeDatePicker(event.target));
   document.getElementById("taskDate").addEventListener("change", event => closeDatePicker(event.target));
   document.getElementById("taskDeadline").addEventListener("input", event => closeDatePicker(event.target));
@@ -294,6 +325,8 @@ document.addEventListener("click", event => {
   if (!actionDropdown) closeActionMenu();
   const personnelDropdown = event.target.closest(".personnel-action-dropdown, .personnel-row-dropdown");
   if (!personnelDropdown) closePersonnelMenus();
+  const jobsDropdown = event.target.closest(".jobs-action-dropdown");
+  if (!jobsDropdown) closeJobsMenus();
   const recipientCombobox = event.target.closest(".recipient-combobox");
   if (!recipientCombobox) closeRecipientCombobox();
 });
@@ -621,6 +654,22 @@ function closePersonnelMenus() {
   document.querySelectorAll(".personnel-action-dropdown .action-dropdown-button, .personnel-row-dropdown .action-dropdown-button").forEach(button => {
     button.setAttribute("aria-expanded", "false");
   });
+}
+
+function toggleJobsToolsMenu() {
+  const menu = document.getElementById("jobsToolsMenu");
+  const button = document.getElementById("jobsToolsButton");
+  const willOpen = menu.classList.contains("hidden");
+  closeJobsMenus();
+  menu.classList.toggle("hidden", !willOpen);
+  button.setAttribute("aria-expanded", String(willOpen));
+}
+
+function closeJobsMenus() {
+  const menu = document.getElementById("jobsToolsMenu");
+  const button = document.getElementById("jobsToolsButton");
+  if (menu) menu.classList.add("hidden");
+  if (button) button.setAttribute("aria-expanded", "false");
 }
 
 function togglePersonnelRowMenu(button) {
@@ -1043,6 +1092,7 @@ async function loadExternalSheetData() {
   externalSheetLastLoadedAt = Date.now();
   renderExternalSheetStatus();
   renderPersonnel();
+  renderJobs();
 }
 
 function loadPersonnelBridgeData() {
@@ -1185,6 +1235,384 @@ function renderExternalSheetStatus() {
       </div>
     `;
   }).join("");
+}
+
+function getDataUtamaSheet() {
+  return state.externalSheets.find(sheet => sheet.id === "data-utama") || null;
+}
+
+function findRecordColumn(record, keywords) {
+  return Object.keys(record || {}).find(key =>
+    includesAny(normalizeSearchText(key), keywords)
+  ) || "";
+}
+
+function getRecordValue(record, keywords) {
+  const key = findRecordColumn(record, keywords);
+  return key ? String(record?.[key] || "").trim() : "";
+}
+
+function getComparableDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return 0;
+  const nativeDate = new Date(raw);
+  if (!Number.isNaN(nativeDate.getTime())) return nativeDate.getTime();
+
+  const months = {
+    januari: 0,
+    februari: 1,
+    maret: 2,
+    april: 3,
+    mei: 4,
+    juni: 5,
+    juli: 6,
+    agustus: 7,
+    september: 8,
+    oktober: 9,
+    november: 10,
+    desember: 11
+  };
+  const parts = normalizeSearchText(raw).split(" ");
+  if (parts.length >= 3 && months[parts[1]] !== undefined) {
+    const day = Number(parts[0]);
+    const year = Number(parts[2]);
+    if (day && year) return new Date(year, months[parts[1]], day).getTime();
+  }
+  return 0;
+}
+
+function buildJobsFromDataUtama() {
+  const sheet = getDataUtamaSheet();
+  if (!sheet || sheet.status !== "ready") return [];
+
+  const groups = new Map();
+  sheet.records.forEach((record, index) => {
+    const jobName = getRecordValue(record, ["pekerjaan", "nama pekerjaan", "project", "proyek"]);
+    if (!jobName) return;
+    const key = normalizeSearchText(jobName);
+    const startDate = getRecordValue(record, ["tanggal mulai", "tgl mulai", "mulai"]);
+    const finishDate = getRecordValue(record, ["tanggal selesai", "tgl selesai", "selesai"]);
+    const existing = groups.get(key) || {
+      id: key || `pekerjaan-${index}`,
+      pekerjaan: jobName,
+      tanggalMulai: startDate,
+      tanggalSelesai: finishDate,
+      records: []
+    };
+    existing.records.push(record);
+    if (!existing.tanggalMulai && startDate) existing.tanggalMulai = startDate;
+    if (!existing.tanggalSelesai && finishDate) existing.tanggalSelesai = finishDate;
+    groups.set(key, existing);
+  });
+
+  return Array.from(groups.values());
+}
+
+function getFilteredJobs() {
+  const queryText = normalizeSearchText(state.jobsSearch);
+  const queryTokens = getMeaningfulTokens(queryText);
+  let jobs = buildJobsFromDataUtama().filter(job => {
+    if (!queryTokens.length) return true;
+    const haystack = normalizeSearchText([
+      job.pekerjaan,
+      job.tanggalMulai,
+      job.tanggalSelesai,
+      ...job.records.map(record => objectSearchText(record))
+    ].join(" "));
+    return queryTokens.every(token => haystack.includes(token));
+  });
+
+  jobs = jobs.sort((a, b) => {
+    if (state.jobsSort === "name-desc") {
+      return b.pekerjaan.localeCompare(a.pekerjaan);
+    }
+    if (state.jobsSort === "start-asc") {
+      return getComparableDate(a.tanggalMulai) - getComparableDate(b.tanggalMulai);
+    }
+    if (state.jobsSort === "finish-desc") {
+      return getComparableDate(b.tanggalSelesai) - getComparableDate(a.tanggalSelesai);
+    }
+    return a.pekerjaan.localeCompare(b.pekerjaan);
+  });
+
+  return jobs;
+}
+
+function renderJobs() {
+  const sheet = getDataUtamaSheet();
+  const syncText = document.getElementById("jobsSyncText");
+  const tableBody = document.getElementById("jobsTableBody");
+  const resultCount = document.getElementById("jobsResultCount");
+  if (!tableBody) return;
+
+  if (syncText) {
+    const statusText = sheet?.status === "ready"
+      ? `${sheet.records.length} baris DATA UTAMA tersinkron`
+      : sheet?.status === "loading"
+        ? "Memuat DATA UTAMA..."
+        : sheet?.status === "error"
+          ? "DATA UTAMA belum dapat dibaca."
+          : "Menunggu sinkronisasi DATA UTAMA...";
+    syncText.textContent = statusText;
+  }
+
+  const jobs = getFilteredJobs();
+  state.jobsVisibleRecords = jobs;
+  const pageSize = Number(state.jobsPageSize) || 25;
+  const pageCount = Math.max(1, Math.ceil(jobs.length / pageSize));
+  state.jobsPage = Math.min(Math.max(1, state.jobsPage), pageCount);
+  const startIndex = (state.jobsPage - 1) * pageSize;
+  const visible = jobs.slice(startIndex, startIndex + pageSize);
+
+  if (resultCount) resultCount.textContent = `${jobs.length} pekerjaan ditemukan`;
+  if (!visible.length) {
+    tableBody.innerHTML = '<tr><td class="personnel-empty" colspan="4">Tidak ada pekerjaan yang cocok.</td></tr>';
+  } else {
+    tableBody.innerHTML = visible.map((job, index) => `
+      <tr class="clickable-row" data-job-index="${startIndex + index}" tabindex="0">
+        <td data-label="Pekerjaan"><strong>${escapeHtml(job.pekerjaan)}</strong></td>
+        <td data-label="Tanggal Mulai">${escapeHtml(job.tanggalMulai || "-")}</td>
+        <td data-label="Tanggal Selesai">${escapeHtml(job.tanggalSelesai || "-")}</td>
+        <td data-label="Jumlah Data">${job.records.length}</td>
+      </tr>
+    `).join("");
+  }
+
+  setJobsPaginationButtons(pageCount);
+}
+
+function setJobsPaginationButtons(pageCount) {
+  const info = document.getElementById("jobsPageInfo");
+  const prev = document.getElementById("jobsPrevPage");
+  const next = document.getElementById("jobsNextPage");
+  if (info) info.textContent = `Halaman ${state.jobsPage} dari ${pageCount}`;
+  if (prev) prev.disabled = state.jobsPage <= 1;
+  if (next) next.disabled = state.jobsPage >= pageCount;
+}
+
+function resetJobsFilters() {
+  state.jobsSearch = "";
+  state.jobsSort = "name-asc";
+  state.jobsPage = 1;
+  state.jobsPageSize = 25;
+  document.getElementById("jobsSearch").value = "";
+  document.getElementById("jobsSort").value = state.jobsSort;
+  document.getElementById("jobsPageSize").value = "25";
+  renderJobs();
+}
+
+function changeJobsPage(offset) {
+  state.jobsPage += offset;
+  renderJobs();
+}
+
+function handleJobsTableClick(event) {
+  const row = event.target.closest("[data-job-index]");
+  if (!row) return;
+  const job = state.jobsVisibleRecords[Number(row.dataset.jobIndex)];
+  if (job) openJobDetail(job);
+}
+
+function openJobDetail(job) {
+  const modal = document.getElementById("jobDetailModal");
+  const title = document.getElementById("jobDetailTitle");
+  const source = document.getElementById("jobDetailSource");
+  const body = document.getElementById("jobDetailBody");
+  if (!modal || !body) return;
+
+  if (title) title.textContent = job.pekerjaan;
+  if (source) {
+    source.textContent = `${job.records.length} baris dari Sheet DATA UTAMA`;
+  }
+
+  const columns = getPersonnelColumns(job.records);
+  body.innerHTML = `
+    <div class="job-detail-summary">
+      <div><span>Tanggal Mulai</span><strong>${escapeHtml(job.tanggalMulai || "-")}</strong></div>
+      <div><span>Tanggal Selesai</span><strong>${escapeHtml(job.tanggalSelesai || "-")}</strong></div>
+      <div><span>Jumlah Data</span><strong>${job.records.length}</strong></div>
+    </div>
+    <div class="job-detail-table-wrap">
+      <table class="personnel-table">
+        <thead>
+          <tr>${columns.map(column => `<th>${escapeHtml(humanizeFieldName(column))}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${job.records.map(record => `
+            <tr>
+              ${columns.map(column => `<td data-label="${escapeHtml(humanizeFieldName(column))}">${escapeHtml(record[column] || "-")}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+  modal.showModal();
+}
+
+function closeJobDetail() {
+  const modal = document.getElementById("jobDetailModal");
+  if (modal?.open) modal.close();
+}
+
+async function addJobFromPrompt() {
+  if (!requirePermission(
+    canManagePersonnel(),
+    "Hanya Super Admin, Editor, atau Author yang dapat menambah data pekerjaan."
+  )) return;
+
+  const sheet = getDataUtamaSheet();
+  if (!sheet || sheet.status !== "ready") {
+    alert("DATA UTAMA belum terbaca. Klik Refresh lalu coba lagi.");
+    return;
+  }
+
+  const columns = getPersonnelColumns(sheet.records);
+  const columnLookup = Object.fromEntries(columns.map(column => [column, column]));
+  const jobColumn = findRecordColumn(columnLookup, ["pekerjaan", "nama pekerjaan", "project", "proyek"]) || "PEKERJAAN";
+  const startColumn = findRecordColumn(columnLookup, ["tanggal mulai", "tgl mulai", "mulai"]) || "TANGGAL MULAI";
+  const finishColumn = findRecordColumn(columnLookup, ["tanggal selesai", "tgl selesai", "selesai"]) || "TANGGAL SELESAI";
+
+  const pekerjaan = prompt("Nama pekerjaan baru:");
+  if (!pekerjaan) return;
+  const tanggalMulai = prompt("Tanggal mulai, contoh 15 Mei 2025:", "");
+  const tanggalSelesai = prompt("Tanggal selesai, contoh 24 Desember 2025:", "");
+
+  await sendJobMutation("add", {
+    data: {
+      [jobColumn]: pekerjaan.trim(),
+      [startColumn]: String(tanggalMulai || "").trim(),
+      [finishColumn]: String(tanggalSelesai || "").trim()
+    }
+  });
+}
+
+async function sendJobMutation(action, payload) {
+  if (!window.PERSONNEL_BRIDGE_URL || !window.PERSONNEL_BRIDGE_TOKEN) {
+    alert("Bridge Google Spreadsheet belum dikonfigurasi.");
+    return;
+  }
+  if (!currentUser) return alert("Silakan login kembali.");
+
+  try {
+    const firebaseIdToken = await currentUser.getIdToken(true);
+    await fetch(window.PERSONNEL_BRIDGE_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        token: window.PERSONNEL_BRIDGE_TOKEN,
+        firebaseIdToken,
+        action,
+        sourceId: "data-utama",
+        targetSourceId: "data-utama",
+        rowNumber: payload.rowNumber || 0,
+        data: payload.data || {}
+      })
+    });
+
+    alert("Permintaan perubahan pekerjaan dikirim ke Google Spreadsheet.");
+    await new Promise(resolve => window.setTimeout(resolve, 1400));
+    await loadExternalSheetData();
+  } catch (error) {
+    alert(`Data pekerjaan gagal dikirim: ${error.message}`);
+  }
+}
+
+function getJobsExportData() {
+  const jobs = getFilteredJobs();
+  if (!jobs.length) {
+    alert("Tidak ada pekerjaan untuk diekspor.");
+    return null;
+  }
+  return {
+    title: "Daftar Pekerjaan",
+    columns: ["Pekerjaan", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Data"],
+    records: jobs.map(job => ({
+      Pekerjaan: job.pekerjaan,
+      "Tanggal Mulai": job.tanggalMulai || "-",
+      "Tanggal Selesai": job.tanggalSelesai || "-",
+      "Jumlah Data": job.records.length
+    }))
+  };
+}
+
+function buildJobsExportTable(data) {
+  return `
+    <table>
+      <thead><tr>${data.columns.map(column => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead>
+      <tbody>
+        ${data.records.map(record => `
+          <tr>${data.columns.map(column => `<td>${escapeHtml(record[column] || "-")}</td>`).join("")}</tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function exportJobsExcel() {
+  const data = getJobsExportData();
+  if (!data) return;
+  const html = `
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12px; }
+          th { background: #e8eef7; color: #111827; font-weight: 700; }
+          th, td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: top; }
+          h1 { font-family: Arial, sans-serif; font-size: 18px; }
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(data.title)}</h1>
+        ${buildJobsExportTable(data)}
+      </body>
+    </html>
+  `;
+  const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `daftar-pekerjaan-${state.today}.xls`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportJobsPdf() {
+  const data = getJobsExportData();
+  if (!data) return;
+  const win = window.open("", "_blank", "noopener,noreferrer,width=1200,height=800");
+  if (!win) return alert("Popup browser diblokir. Izinkan popup untuk export PDF.");
+  win.document.write(`
+    <html>
+      <head>
+        <title>${escapeHtml(data.title)}</title>
+        <style>
+          @page { size: A4 landscape; margin: 12mm; }
+          body { font-family: Arial, sans-serif; color: #111827; }
+          h1 { margin: 0 0 6px; font-size: 20px; }
+          p { margin: 0 0 14px; color: #64748b; }
+          table { border-collapse: collapse; width: 100%; font-size: 11px; }
+          th { background: #e8eef7; color: #111827; font-weight: 700; }
+          th, td { border: 1px solid #cbd5e1; padding: 7px; vertical-align: top; word-break: break-word; }
+          tr { break-inside: avoid; }
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(data.title)}</h1>
+        <p>Diekspor ${formatHumanDate(state.today)} - ${data.records.length} pekerjaan</p>
+        ${buildJobsExportTable(data)}
+        <script>
+          window.onload = () => {
+            window.focus();
+            window.print();
+          };
+        <\/script>
+      </body>
+    </html>
+  `);
+  win.document.close();
 }
 
 function getPersonnelSheet(sourceId = state.personnelSource) {
@@ -2085,6 +2513,7 @@ function render() {
   renderLocalAI();
   renderExternalSheetStatus();
   renderPersonnel();
+  renderJobs();
   renderAttentionBanner();
   document.getElementById("todayText").textContent = `Hari ini: ${formatHumanDate(state.today)}`;
   document.getElementById("syncStatus").textContent = state.syncMessage;
@@ -2102,6 +2531,7 @@ function setView(view) {
 function renderView() {
   const titles = {
     dashboard: "Dashboard",
+    jobs: "Pekerjaan",
     personnel: "Personil",
     tasks: "Tugas",
     reports: "Laporan",

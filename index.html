@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619233000">
+  <link rel="stylesheet" href="styles.css?v=20260619235500">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -99,6 +99,7 @@
       </div>
       <nav class="nav">
         <button class="nav-item active" data-view="dashboard">Dashboard</button>
+        <button class="nav-item" data-view="jobs">Pekerjaan</button>
         <button class="nav-item" data-view="personnel">Personil</button>
         <button class="nav-item" data-view="tasks">Tugas</button>
         <button class="nav-item" data-view="reports">Laporan</button>
@@ -225,6 +226,80 @@
               <div id="agendaList" class="agenda-list"></div>
             </section>
           </aside>
+        </section>
+      </section>
+
+      <section id="jobsView" class="view">
+        <section class="panel jobs-panel">
+          <div class="section-header personnel-heading">
+            <div>
+              <h2>Daftar Pekerjaan</h2>
+              <p id="jobsSyncText">Menunggu sinkronisasi DATA UTAMA...</p>
+            </div>
+            <div class="personnel-heading-actions">
+              <button class="secondary-button" id="refreshJobsButton" type="button">Refresh</button>
+              <div class="action-dropdown jobs-action-dropdown">
+                <button class="secondary-button action-dropdown-button" id="jobsToolsButton" type="button" aria-expanded="false">
+                  Pilihan <span class="dropdown-chevron" aria-hidden="true"></span>
+                </button>
+                <div class="action-dropdown-menu personnel-tools-menu hidden" id="jobsToolsMenu">
+                  <button id="addJobButton" type="button">Tambah Pekerjaan</button>
+                  <button id="exportJobsPdfButton" type="button">Export PDF</button>
+                  <button id="exportJobsExcelButton" type="button">Export Excel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="personnel-tools jobs-tools">
+            <label class="personnel-search">
+              <span>Cari pekerjaan</span>
+              <input id="jobsSearch" type="search" placeholder="Cari nama pekerjaan, tanggal, atau detail lain...">
+            </label>
+            <label>
+              <span>Urutkan</span>
+              <select id="jobsSort">
+                <option value="name-asc">Pekerjaan A-Z</option>
+                <option value="name-desc">Pekerjaan Z-A</option>
+                <option value="start-asc">Tanggal mulai awal</option>
+                <option value="finish-desc">Tanggal selesai akhir</option>
+              </select>
+            </label>
+            <label>
+              <span>Baris</span>
+              <select id="jobsPageSize">
+                <option>10</option>
+                <option selected>25</option>
+                <option>50</option>
+                <option>100</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="personnel-result-bar">
+            <span id="jobsResultCount">0 pekerjaan ditemukan</span>
+            <button class="text-button" id="resetJobsFilters" type="button">Reset filter</button>
+          </div>
+
+          <div class="table-wrap personnel-table-wrap">
+            <table class="jobs-table personnel-table">
+              <thead>
+                <tr>
+                  <th>Pekerjaan</th>
+                  <th>Tanggal Mulai</th>
+                  <th>Tanggal Selesai</th>
+                  <th>Jumlah Data</th>
+                </tr>
+              </thead>
+              <tbody id="jobsTableBody"></tbody>
+            </table>
+          </div>
+
+          <footer class="personnel-pagination">
+            <button class="secondary-button" id="jobsPrevPage" type="button">Sebelumnya</button>
+            <span id="jobsPageInfo">Halaman 1 dari 1</span>
+            <button class="secondary-button" id="jobsNextPage" type="button">Berikutnya</button>
+          </footer>
         </section>
       </section>
 
@@ -507,6 +582,22 @@
     </form>
   </dialog>
 
+  <dialog id="jobDetailModal">
+    <section class="modal-card personnel-detail-card job-detail-card">
+      <header>
+        <div>
+          <h2 id="jobDetailTitle">Detail Pekerjaan</h2>
+          <p id="jobDetailSource"></p>
+        </div>
+        <button type="button" class="icon-button" id="closeJobDetailButton">x</button>
+      </header>
+      <div id="jobDetailBody" class="job-detail-body"></div>
+      <footer>
+        <button type="button" class="secondary-button" id="closeJobDetailFooter">Tutup</button>
+      </footer>
+    </section>
+  </dialog>
+
   <dialog id="previewModal">
     <div class="modal-card preview-card">
       <header>
@@ -643,7 +734,7 @@
     </section>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619233000"></script>
-  <script type="module" src="app.js?v=20260619233000"></script>
+  <script src="firebase-config.js?v=20260619235500"></script>
+  <script type="module" src="app.js?v=20260619235500"></script>
 </body>
 </html>
