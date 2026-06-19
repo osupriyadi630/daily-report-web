@@ -70,7 +70,13 @@ let state = {
   activeView: "dashboard",
   syncMessage: "Menunggu login...",
   authMode: "login",
-  selectedRecipientEmail: ""
+  selectedRecipientEmail: "",
+  personnelSource: "personil-bmc",
+  personnelSearch: "",
+  personnelWorkFilter: "all",
+  personnelSort: "name-asc",
+  personnelPage: 1,
+  personnelPageSize: 25
 };
 
 const statusToList = {
@@ -122,6 +128,37 @@ function bindControls() {
   document.getElementById("closePreviewFooterButton").addEventListener("click", closePreviewModal);
   document.getElementById("searchInput").addEventListener("input", render);
   document.getElementById("statusFilter").addEventListener("change", render);
+  document.querySelectorAll("[data-personnel-source]").forEach(button => {
+    button.addEventListener("click", () => selectPersonnelSource(button.dataset.personnelSource));
+  });
+  document.getElementById("personnelSearch").addEventListener("input", event => {
+    state.personnelSearch = event.target.value;
+    state.personnelPage = 1;
+    renderPersonnel();
+  });
+  document.getElementById("personnelWorkFilter").addEventListener("change", event => {
+    state.personnelWorkFilter = event.target.value;
+    state.personnelPage = 1;
+    renderPersonnel();
+  });
+  document.getElementById("personnelSort").addEventListener("change", event => {
+    state.personnelSort = event.target.value;
+    state.personnelPage = 1;
+    renderPersonnel();
+  });
+  document.getElementById("personnelPageSize").addEventListener("change", event => {
+    state.personnelPageSize = Number(event.target.value) || 25;
+    state.personnelPage = 1;
+    renderPersonnel();
+  });
+  document.getElementById("resetPersonnelFilters").addEventListener("click", resetPersonnelFilters);
+  document.getElementById("refreshPersonnelButton").addEventListener("click", loadExternalSheetData);
+  document.getElementById("exportPersonnelButton").addEventListener("click", exportPersonnelCsv);
+  document.getElementById("personnelPrevPage").addEventListener("click", () => changePersonnelPage(-1));
+  document.getElementById("personnelNextPage").addEventListener("click", () => changePersonnelPage(1));
+  document.getElementById("personnelTableBody").addEventListener("click", handlePersonnelTableClick);
+  document.getElementById("closePersonnelDetailButton").addEventListener("click", closePersonnelDetail);
+  document.getElementById("closePersonnelDetailFooter").addEventListener("click", closePersonnelDetail);
   document.getElementById("taskDate").addEventListener("input", event => closeDatePicker(event.target));
   document.getElementById("taskDate").addEventListener("change", event => closeDatePicker(event.target));
   document.getElementById("taskDeadline").addEventListener("input", event => closeDatePicker(event.target));
@@ -734,6 +771,7 @@ async function loadExternalSheetData() {
   state.externalSheets = results;
   externalSheetLastLoadedAt = Date.now();
   renderExternalSheetStatus();
+  renderPersonnel();
 }
 
 function csvToRecords(csvText) {
@@ -838,6 +876,219 @@ function renderExternalSheetStatus() {
       </div>
     `;
   }).join("");
+}
+
+function getPersonnelSheet(sourceId = state.personnelSource) {
+  return state.externalSheets.find(sheet => sheet.id === sourceId) || null;
+}
+
+function getPersonnelName(record) {
+  const nameKey = Object.keys(record || {}).find(key =>
+    includesAny(normalizeSearchText(key), ["nama personil", "nama lengkap", "nama"])
+  );
+  return String(record?.[nameKey] || "Tanpa nama").trim();
+}
+
+function getPersonnelActiveWork(record) {
+  const workKey = Object.keys(record || {}).find(key =>
+    includesAny(normalizeSearchText(key), ["pekerjaan aktif", "tugas aktif", "project aktif"])
+  );
+  const value = String(record?.[workKey] || "0").replace(",", ".");
+  const number = Number.parseFloat(value.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getFilteredPersonnelRecords() {
+  const sheet = getPersonnelSheet();
+  if (!sheet || sheet.status !== "ready") return [];
+
+  const queryText = normalizeSearchText(state.personnelSearch);
+  const queryTokens = getMeaningfulTokens(queryText);
+  const records = sheet.records.filter(record => {
+    const searchable = normalizeSearchText(objectSearchText(record));
+    const matchesSearch = !queryText ||
+      searchable.includes(queryText) ||
+      queryTokens.every(token => searchable.includes(token));
+    const activeWork = getPersonnelActiveWork(record);
+    const matchesWork = state.personnelWorkFilter === "all" ||
+      (state.personnelWorkFilter === "active" && activeWork > 0) ||
+      (state.personnelWorkFilter === "inactive" && activeWork <= 0);
+    return matchesSearch && matchesWork;
+  });
+
+  return records.sort((recordA, recordB) => {
+    if (state.personnelSort === "name-desc") {
+      return getPersonnelName(recordB).localeCompare(getPersonnelName(recordA), "id");
+    }
+    if (state.personnelSort === "work-desc") {
+      return getPersonnelActiveWork(recordB) - getPersonnelActiveWork(recordA);
+    }
+    if (state.personnelSort === "work-asc") {
+      return getPersonnelActiveWork(recordA) - getPersonnelActiveWork(recordB);
+    }
+    return getPersonnelName(recordA).localeCompare(getPersonnelName(recordB), "id");
+  });
+}
+
+function renderPersonnel() {
+  const tableHead = document.getElementById("personnelTableHead");
+  const tableBody = document.getElementById("personnelTableBody");
+  if (!tableHead || !tableBody) return;
+
+  document.querySelectorAll("[data-personnel-source]").forEach(button => {
+    button.classList.toggle("active", button.dataset.personnelSource === state.personnelSource);
+  });
+
+  const bemacoSheet = getPersonnelSheet("personil-bmc");
+  const outsourcingSheet = getPersonnelSheet("outsourcing");
+  updatePersonnelSourceSummary("personnelBemacoCount", "personnelBemacoActive", bemacoSheet);
+  updatePersonnelSourceSummary("personnelOutsourcingCount", "personnelOutsourcingActive", outsourcingSheet);
+
+  const sheet = getPersonnelSheet();
+  const sourceName = state.personnelSource === "outsourcing" ? "Personil Outsourcing" : "Personil Bemaco";
+  document.getElementById("personnelTableTitle").textContent = sourceName;
+
+  if (!sheet || sheet.status !== "ready") {
+    const message = sheet?.status === "loading"
+      ? "Sedang memuat data spreadsheet..."
+      : sheet?.status === "error"
+        ? "Spreadsheet belum dapat dibaca. Periksa publikasi CSV lalu klik Refresh."
+        : "Menunggu sinkronisasi spreadsheet...";
+    document.getElementById("personnelSyncText").textContent = message;
+    document.getElementById("personnelResultCount").textContent = "0 data ditemukan";
+    document.getElementById("personnelPageInfo").textContent = "Halaman 1 dari 1";
+    tableHead.innerHTML = "";
+    tableBody.innerHTML = `<tr><td class="personnel-empty">${escapeHtml(message)}</td></tr>`;
+    setPersonnelPaginationButtons(1);
+    return;
+  }
+
+  const filteredRecords = getFilteredPersonnelRecords();
+  const pageCount = Math.max(1, Math.ceil(filteredRecords.length / state.personnelPageSize));
+  state.personnelPage = Math.min(Math.max(1, state.personnelPage), pageCount);
+  const pageStart = (state.personnelPage - 1) * state.personnelPageSize;
+  const pageRecords = filteredRecords.slice(pageStart, pageStart + state.personnelPageSize);
+  const columns = getPersonnelColumns(sheet.records);
+  state.personnelVisibleRecords = pageRecords;
+
+  document.getElementById("personnelSyncText").textContent =
+    `${sheet.records.length} data tersinkron · diperbarui ${formatSyncTime(externalSheetLastLoadedAt)}`;
+  document.getElementById("personnelResultCount").textContent =
+    `${filteredRecords.length} data ditemukan`;
+  document.getElementById("personnelPageInfo").textContent =
+    `Halaman ${state.personnelPage} dari ${pageCount}`;
+  setPersonnelPaginationButtons(pageCount);
+
+  tableHead.innerHTML = `<tr>${columns.map(column =>
+    `<th>${escapeHtml(humanizeFieldName(column))}</th>`
+  ).join("")}<th>Aksi</th></tr>`;
+
+  tableBody.innerHTML = pageRecords.length
+    ? pageRecords.map((record, index) => `
+      <tr>
+        ${columns.map(column => `<td data-label="${escapeHtml(humanizeFieldName(column))}">${escapeHtml(record[column] || "-")}</td>`).join("")}
+        <td data-label="Aksi">
+          <button class="text-button personnel-detail-button" type="button" data-personnel-index="${index}">Detail</button>
+        </td>
+      </tr>
+    `).join("")
+    : '<tr><td class="personnel-empty">Tidak ada data yang sesuai dengan filter.</td></tr>';
+}
+
+function getPersonnelColumns(records) {
+  const columns = [];
+  records.forEach(record => {
+    Object.keys(record || {}).forEach(key => {
+      if (key !== "_Sumber Baris" && !columns.includes(key)) columns.push(key);
+    });
+  });
+  return columns;
+}
+
+function updatePersonnelSourceSummary(countId, activeId, sheet) {
+  const records = sheet?.status === "ready" ? sheet.records : [];
+  document.getElementById(countId).textContent = records.length;
+  document.getElementById(activeId).textContent =
+    `${records.filter(record => getPersonnelActiveWork(record) > 0).length} memiliki pekerjaan aktif`;
+}
+
+function selectPersonnelSource(sourceId) {
+  state.personnelSource = sourceId;
+  state.personnelPage = 1;
+  renderPersonnel();
+}
+
+function resetPersonnelFilters() {
+  state.personnelSearch = "";
+  state.personnelWorkFilter = "all";
+  state.personnelSort = "name-asc";
+  state.personnelPage = 1;
+  document.getElementById("personnelSearch").value = "";
+  document.getElementById("personnelWorkFilter").value = "all";
+  document.getElementById("personnelSort").value = "name-asc";
+  renderPersonnel();
+}
+
+function changePersonnelPage(offset) {
+  const records = getFilteredPersonnelRecords();
+  const pageCount = Math.max(1, Math.ceil(records.length / state.personnelPageSize));
+  state.personnelPage = Math.min(pageCount, Math.max(1, state.personnelPage + offset));
+  renderPersonnel();
+}
+
+function setPersonnelPaginationButtons(pageCount) {
+  document.getElementById("personnelPrevPage").disabled = state.personnelPage <= 1;
+  document.getElementById("personnelNextPage").disabled = state.personnelPage >= pageCount;
+}
+
+function handlePersonnelTableClick(event) {
+  const button = event.target.closest("[data-personnel-index]");
+  if (!button) return;
+  const record = state.personnelVisibleRecords?.[Number(button.dataset.personnelIndex)];
+  if (record) openPersonnelDetail(record);
+}
+
+function openPersonnelDetail(record) {
+  const sheet = getPersonnelSheet();
+  document.getElementById("personnelDetailTitle").textContent = getPersonnelName(record);
+  document.getElementById("personnelDetailSource").textContent = sheet?.label || "Data Personil";
+  document.getElementById("personnelDetailBody").innerHTML = Object.entries(record)
+    .filter(([key]) => key !== "_Sumber Baris")
+    .map(([key, value]) => `
+      <div class="personnel-detail-row">
+        <span>${escapeHtml(humanizeFieldName(key))}</span>
+        <strong>${escapeHtml(value || "-")}</strong>
+      </div>
+    `).join("");
+  document.getElementById("personnelDetailModal").showModal();
+}
+
+function closePersonnelDetail() {
+  document.getElementById("personnelDetailModal").close();
+}
+
+function exportPersonnelCsv() {
+  const records = getFilteredPersonnelRecords();
+  if (!records.length) return alert("Tidak ada data personil untuk diekspor.");
+  const columns = getPersonnelColumns(records);
+  const rows = records.map(record => columns.map(column => record[column] || ""));
+  const csv = [columns, ...rows].map(row => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${state.personnelSource}-${state.today}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function formatSyncTime(timestamp) {
+  if (!timestamp) return "belum pernah";
+  return new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta"
+  }).format(new Date(timestamp)) + " WIB";
 }
 
 function buildPeopleDirectory(tasks) {
@@ -1146,6 +1397,7 @@ function render() {
   renderFocusList();
   renderLocalAI();
   renderExternalSheetStatus();
+  renderPersonnel();
   renderAttentionBanner();
   document.getElementById("todayText").textContent = `Hari ini: ${formatHumanDate(state.today)}`;
   document.getElementById("syncStatus").textContent = state.syncMessage;
@@ -1157,7 +1409,13 @@ function setView(view) {
 }
 
 function renderView() {
-  const titles = { dashboard: "Dashboard", tasks: "Tugas", reports: "Laporan", settings: "Pengaturan" };
+  const titles = {
+    dashboard: "Dashboard",
+    personnel: "Personil",
+    tasks: "Tugas",
+    reports: "Laporan",
+    settings: "Pengaturan"
+  };
   document.querySelectorAll(".nav-item").forEach(button => {
     button.classList.toggle("active", button.dataset.view === state.activeView);
   });
