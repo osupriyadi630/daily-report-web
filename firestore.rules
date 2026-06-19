@@ -6,13 +6,137 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function userEmail() {
+      return signedIn() && request.auth.token.email != null
+        ? request.auth.token.email
+        : "";
+    }
+
+    function isBootstrapSuperAdmin() {
+      return userEmail() == "o.supriyadi630@gmail.com";
+    }
+
+    function assignedRole() {
+      return isBootstrapSuperAdmin()
+        ? "super_admin"
+        : (
+          exists(/databases/$(database)/documents/roles/$(userEmail()))
+            ? get(/databases/$(database)/documents/roles/$(userEmail())).data.role
+            : "member"
+        );
+    }
+
+    function hasRole(roles) {
+      return signedIn() && assignedRole() in roles;
+    }
+
+    function isTaskManager() {
+      return hasRole(["super_admin", "admin", "editor"]);
+    }
+
+    function ownsExistingTask() {
+      return signedIn() && (
+        resource.data.ownerUid == request.auth.uid ||
+        resource.data.dibuatOleh == userEmail()
+      );
+    }
+
+    function ownsNewTask() {
+      return signedIn() && (
+        request.resource.data.ownerUid == request.auth.uid ||
+        request.resource.data.dibuatOleh == userEmail()
+      );
+    }
+
+    function adminCanAssignRequestedRole() {
+      return assignedRole() == "admin" &&
+        request.resource.data.role in [
+          "editor",
+          "author",
+          "contributor",
+          "moderator",
+          "member"
+        ];
+    }
+
+    function existingRoleIsLowerLevel() {
+      return resource.data.role in [
+        "editor",
+        "author",
+        "contributor",
+        "moderator",
+        "member"
+      ];
+    }
+
     match /tasks/{taskId} {
-      allow read, create, update, delete: if signedIn();
+      allow read: if signedIn();
+
+      allow create: if isTaskManager() ||
+        (
+          hasRole(["author"]) &&
+          ownsNewTask()
+        ) ||
+        (
+          hasRole(["contributor"]) &&
+          ownsNewTask() &&
+          request.resource.data.status == "Tertunda"
+        );
+
+      allow update: if isTaskManager() ||
+        (
+          hasRole(["author"]) &&
+          ownsExistingTask() &&
+          ownsNewTask()
+        ) ||
+        (
+          hasRole(["contributor"]) &&
+          ownsExistingTask() &&
+          ownsNewTask() &&
+          resource.data.status == "Tertunda" &&
+          request.resource.data.status == "Tertunda"
+        );
+
+      allow delete: if isTaskManager() ||
+        (hasRole(["author"]) && ownsExistingTask());
     }
 
     match /profiles/{userId} {
       allow read: if signedIn();
-      allow create, update, delete: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if hasRole(["super_admin", "admin"]) ||
+        (signedIn() && request.auth.uid == userId);
+    }
+
+    match /roles/{roleEmail} {
+      allow read: if signedIn() && (
+        roleEmail == userEmail() ||
+        hasRole(["super_admin", "admin"])
+      );
+
+      allow create: if roleEmail != "o.supriyadi630@gmail.com" &&
+        (
+          hasRole(["super_admin"]) ||
+          adminCanAssignRequestedRole()
+        );
+
+      allow update: if roleEmail != "o.supriyadi630@gmail.com" &&
+        (
+          hasRole(["super_admin"]) ||
+          (
+            adminCanAssignRequestedRole() &&
+            existingRoleIsLowerLevel()
+          )
+        );
+
+      allow delete: if roleEmail != "o.supriyadi630@gmail.com" &&
+        (
+          hasRole(["super_admin"]) ||
+          (
+            assignedRole() == "admin" &&
+            existingRoleIsLowerLevel()
+          )
+        );
     }
   }
 }

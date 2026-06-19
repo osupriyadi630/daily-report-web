@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619170000">
+  <link rel="stylesheet" href="styles.css?v=20260619193000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -103,7 +103,7 @@
         <button class="nav-item" data-view="personnel">Personil</button>
         <button class="nav-item" data-view="tasks">Tugas</button>
         <button class="nav-item" data-view="reports">Laporan</button>
-        <button class="nav-item" data-view="settings">Pengaturan</button>
+        <button class="nav-item" id="settingsNavButton" data-view="settings">Pengaturan</button>
       </nav>
       <div class="sidebar-profile-wrap">
         <button class="sidebar-profile" id="profileMenuButton" type="button" aria-expanded="false">
@@ -120,6 +120,7 @@
               <strong id="profileMenuName">Pengguna</strong>
               <small id="profileMenuNickname"></small>
               <small id="profileMenuEmail"></small>
+              <span class="access-role-badge" id="profileAccessRole">Member</span>
             </div>
           </header>
           <button type="button" id="openProfileButton">Edit profil</button>
@@ -349,6 +350,14 @@
       </section>
 
       <section id="settingsView" class="view">
+        <section class="panel access-summary-panel">
+          <div>
+            <span class="access-role-badge" id="settingsAccessRole">Member</span>
+            <h2>Hak Akses Akun</h2>
+            <p id="settingsAccessDescription">Akses baca untuk fitur standar aplikasi.</p>
+          </div>
+          <small id="settingsAccessEmail"></small>
+        </section>
         <section class="settings-grid">
           <article class="panel">
             <h2>Pilih Penerima</h2>
@@ -397,6 +406,40 @@
                   </div>
                 </div>
               </section>
+            </div>
+          </article>
+          <article class="panel role-management-panel hidden" id="roleManagementPanel">
+            <div class="section-header">
+              <div>
+                <h2>Manajemen Role</h2>
+                <p>Tambahkan email dan tentukan hak akses pengguna aplikasi.</p>
+              </div>
+              <span class="access-role-badge" id="roleManagerBadge">Super Admin</span>
+            </div>
+            <form id="roleAssignmentForm" class="role-assignment-form">
+              <label>
+                <span>Email pengguna</span>
+                <input id="roleEmailInput" type="email" required placeholder="nama@gmail.com">
+              </label>
+              <label>
+                <span>Role akses</span>
+                <select id="roleSelect" required></select>
+              </label>
+              <button class="primary-button" type="submit">Simpan Role</button>
+            </form>
+            <p class="role-management-note" id="roleManagementNote"></p>
+            <div class="table-wrap role-table-wrap">
+              <table class="role-table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Diperbarui Oleh</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="roleAssignmentsBody"></tbody>
+              </table>
             </div>
           </article>
         </section>
@@ -572,7 +615,7 @@
     </section>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619170000"></script>
-  <script type="module" src="app.js?v=20260619170000"></script>
+  <script src="firebase-config.js?v=20260619193000"></script>
+  <script type="module" src="app.js?v=20260619193000"></script>
 </body>
 </html>

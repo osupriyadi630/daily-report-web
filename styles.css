@@ -430,6 +430,27 @@ button { cursor: pointer; }
   white-space: nowrap;
 }
 
+.access-role-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.profile-popover-header .access-role-badge {
+  margin-top: 3px;
+  border-color: rgba(147, 197, 253, 0.35);
+  background: rgba(37, 99, 235, 0.2);
+  color: #dbeafe;
+}
+
 .profile-popover > button {
   width: 100%;
   border: 0;
@@ -1269,6 +1290,82 @@ pre { overflow: auto; margin: 0; padding: 12px; border-radius: 8px; background: 
 .check-row input { width: auto; box-shadow: none; }
 
 .storage-panel { min-width: 0; }
+
+.access-summary-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.access-summary-panel > div {
+  display: grid;
+  gap: 5px;
+}
+
+.access-summary-panel h2,
+.access-summary-panel p { margin: 0; }
+.access-summary-panel > small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.role-management-panel {
+  grid-column: 1 / -1;
+}
+
+.role-assignment-form {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(190px, 0.65fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin: 18px 0 10px;
+}
+
+.role-assignment-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.role-management-note {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.role-table { min-width: 720px; }
+.role-table td:first-child { min-width: 230px; }
+.danger-text { color: var(--red); }
+.protected-role-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.role-super_admin {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.role-admin {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+.role-editor,
+.role-author,
+.role-contributor {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
 .storage-list {
   display: grid;
   gap: 12px;
@@ -1640,6 +1737,10 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     border-bottom: 0;
   }
 
+  .nav.restricted-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .nav-item {
     min-width: 0;
     padding: 8px 4px;
@@ -1687,6 +1788,13 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .personnel-pagination { align-items: stretch; }
   .personnel-pagination button { padding-inline: 10px; }
   .personnel-detail-row { grid-template-columns: 1fr; gap: 4px; }
+  .access-summary-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .access-summary-panel > small { text-align: left; }
+  .role-assignment-form { grid-template-columns: 1fr; }
+  .role-assignment-form button { width: 100%; }
 
   .sidebar-profile-wrap {
     grid-column: 2;

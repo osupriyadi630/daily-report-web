@@ -37,6 +37,8 @@ let currentUser = null;
 let currentProfile = null;
 let unsubscribeTasks = null;
 let unsubscribeProfiles = null;
+let unsubscribeRoles = null;
+let unsubscribeCurrentRole = null;
 let welcomeTimer = null;
 let aiContextTaskId = null;
 let externalSheetTimer = null;
@@ -60,10 +62,56 @@ const EXTERNAL_SHEET_SOURCES = [
   }
 ];
 
+const BOOTSTRAP_SUPER_ADMIN_EMAIL = "o.supriyadi630@gmail.com";
+const ACCESS_ROLES = {
+  super_admin: {
+    label: "Super Admin",
+    group: 1,
+    description: "Kendali penuh atas sistem, data, pengaturan, dan seluruh role."
+  },
+  admin: {
+    label: "Administrator",
+    group: 1,
+    description: "Mengelola operasional, seluruh data, pengguna, dan role tingkat bawah."
+  },
+  editor: {
+    label: "Editor",
+    group: 2,
+    description: "Melihat, menambah, mengubah, dan menghapus seluruh tugas serta konten."
+  },
+  author: {
+    label: "Author",
+    group: 2,
+    description: "Membuat, menerbitkan, dan mengelola tugas miliknya sendiri."
+  },
+  contributor: {
+    label: "Contributor",
+    group: 2,
+    description: "Membuat dan mengubah draf miliknya sendiri untuk diperiksa pengelola."
+  },
+  moderator: {
+    label: "Moderator",
+    group: 3,
+    description: "Akses pengawasan dan baca pada fitur utama aplikasi."
+  },
+  member: {
+    label: "Member",
+    group: 4,
+    description: "Akses baca, unduh data, mengelola profil, dan memakai fitur standar."
+  },
+  guest: {
+    label: "Guest",
+    group: 4,
+    description: "Pengunjung anonim yang hanya dapat melihat halaman publik."
+  }
+};
+
 let state = {
   tasks: [],
   people: [],
   reports: [],
+  accessRole: "guest",
+  roleAssignments: [],
   externalSheets: createInitialExternalSheets(),
   today: getToday(),
   filter: "all",
@@ -128,6 +176,8 @@ function bindControls() {
   document.getElementById("closePreviewFooterButton").addEventListener("click", closePreviewModal);
   document.getElementById("searchInput").addEventListener("input", render);
   document.getElementById("statusFilter").addEventListener("change", render);
+  document.getElementById("roleAssignmentForm").addEventListener("submit", saveRoleAssignment);
+  document.getElementById("roleAssignmentsBody").addEventListener("click", handleRoleAssignmentAction);
   document.querySelectorAll("[data-personnel-source]").forEach(button => {
     button.addEventListener("click", () => selectPersonnelSource(button.dataset.personnelSource));
   });
@@ -188,6 +238,14 @@ onAuthStateChanged(auth, async user => {
 
   if (unsubscribeTasks) unsubscribeTasks();
   if (unsubscribeProfiles) unsubscribeProfiles();
+  if (unsubscribeRoles) {
+    unsubscribeRoles();
+    unsubscribeRoles = null;
+  }
+  if (unsubscribeCurrentRole) {
+    unsubscribeCurrentRole();
+    unsubscribeCurrentRole = null;
+  }
   if (externalSheetTimer) {
     window.clearInterval(externalSheetTimer);
     externalSheetTimer = null;
@@ -196,6 +254,8 @@ onAuthStateChanged(auth, async user => {
   if (user) {
     document.getElementById("userEmail").textContent = user.email;
     currentProfile = await loadUserProfile(user);
+    state.accessRole = await loadAccessRole(user);
+    watchCurrentAccessRole(user);
     renderUserProfile();
     state.tasks = loadCachedTasks();
     state.syncMessage = state.tasks.length
@@ -204,11 +264,14 @@ onAuthStateChanged(auth, async user => {
     render();
     watchTasks();
     watchProfiles();
+    if (canManageRoles()) watchRoleAssignments();
     loadExternalSheetData();
     externalSheetTimer = window.setInterval(loadExternalSheetData, 5 * 60 * 1000);
     showWelcomeToast();
   } else {
     currentProfile = null;
+    state.accessRole = "guest";
+    state.roleAssignments = [];
     state.tasks = [];
     state.people = [];
     state.externalSheets = createInitialExternalSheets();
@@ -341,6 +404,113 @@ async function loadUserProfile(user) {
   }
 }
 
+async function loadAccessRole(user) {
+  const email = normalizeEmail(user?.email);
+  if (!email) return "guest";
+  if (email === BOOTSTRAP_SUPER_ADMIN_EMAIL) return "super_admin";
+
+  try {
+    const snapshot = await getDoc(doc(db, "roles", email));
+    const role = snapshot.exists() ? snapshot.data().role : "member";
+    return ACCESS_ROLES[role] ? role : "member";
+  } catch (error) {
+    return "member";
+  }
+}
+
+function watchCurrentAccessRole(user) {
+  const email = normalizeEmail(user?.email);
+  if (!email || email === BOOTSTRAP_SUPER_ADMIN_EMAIL) return;
+
+  unsubscribeCurrentRole = onSnapshot(doc(db, "roles", email), snapshot => {
+    const nextRole = snapshot.exists() && ACCESS_ROLES[snapshot.data().role]
+      ? snapshot.data().role
+      : "member";
+    if (nextRole === state.accessRole) return;
+
+    state.accessRole = nextRole;
+    if (unsubscribeRoles) {
+      unsubscribeRoles();
+      unsubscribeRoles = null;
+    }
+    state.roleAssignments = [];
+    if (canManageRoles()) watchRoleAssignments();
+    renderUserProfile();
+    render();
+  }, () => {
+    state.accessRole = "member";
+    renderUserProfile();
+    render();
+  });
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getAccessRoleDefinition(role = state.accessRole) {
+  return ACCESS_ROLES[role] || ACCESS_ROLES.member;
+}
+
+function hasAccessRole(...roles) {
+  return roles.includes(state.accessRole);
+}
+
+function canViewSettings() {
+  return getAccessRoleDefinition().group <= 2;
+}
+
+function canManageRoles() {
+  return hasAccessRole("super_admin", "admin");
+}
+
+function canManageAllTasks() {
+  return hasAccessRole("super_admin", "admin", "editor");
+}
+
+function isOwnTask(task) {
+  if (!task || !currentUser) return false;
+  return task.ownerUid === currentUser.uid ||
+    normalizeEmail(task.dibuatOleh) === normalizeEmail(currentUser.email);
+}
+
+function canCreateTask() {
+  return hasAccessRole("super_admin", "admin", "editor", "author", "contributor");
+}
+
+function canEditTask(task) {
+  if (canManageAllTasks()) return true;
+  if (hasAccessRole("author")) return isOwnTask(task);
+  if (hasAccessRole("contributor")) return isOwnTask(task) && task.status === "Tertunda";
+  return false;
+}
+
+function canDeleteTask(task) {
+  if (canManageAllTasks()) return true;
+  return hasAccessRole("author") && isOwnTask(task);
+}
+
+function canChangeTaskStatus(task, nextStatus) {
+  if (canManageAllTasks()) return true;
+  if (hasAccessRole("author")) return isOwnTask(task);
+  if (hasAccessRole("contributor")) return isOwnTask(task) && nextStatus === "Tertunda";
+  return false;
+}
+
+function canSendReminders() {
+  return hasAccessRole("super_admin", "admin", "editor", "author");
+}
+
+function canCreateReports() {
+  return hasAccessRole("super_admin", "admin", "editor", "author", "contributor");
+}
+
+function requirePermission(condition, message = "Anda tidak memiliki izin untuk tindakan ini.") {
+  if (condition) return true;
+  alert(message);
+  return false;
+}
+
 function renderUserProfile() {
   if (!currentUser || !currentProfile) return;
   const profile = currentProfile;
@@ -348,9 +518,53 @@ function renderUserProfile() {
   document.getElementById("profileMenuName").textContent = profile.displayName;
   document.getElementById("profileMenuNickname").textContent = profile.nickname || "";
   document.getElementById("profileMenuEmail").textContent = currentUser.email || "";
+  document.getElementById("profileAccessRole").textContent = getAccessRoleDefinition().label;
   setAvatar("sidebarAvatar", profile);
   setAvatar("profileMenuAvatar", profile);
   setAvatar("welcomeAvatar", profile);
+  renderAccessControl();
+}
+
+function renderAccessControl() {
+  const role = getAccessRoleDefinition();
+  const settingsNav = document.getElementById("settingsNavButton");
+  const canOpenSettings = canViewSettings();
+  settingsNav.classList.toggle("hidden", !canOpenSettings);
+  document.querySelector(".nav").classList.toggle("restricted-nav", !canOpenSettings);
+
+  if (!canOpenSettings && state.activeView === "settings") {
+    state.activeView = "dashboard";
+  }
+
+  document.getElementById("settingsAccessRole").textContent = role.label;
+  document.getElementById("settingsAccessDescription").textContent = role.description;
+  document.getElementById("settingsAccessEmail").textContent = currentUser?.email || "";
+  document.getElementById("roleManagerBadge").textContent = role.label;
+  document.getElementById("roleManagementPanel").classList.toggle("hidden", !canManageRoles());
+
+  const canCreate = canCreateTask();
+  document.getElementById("newTaskButton").classList.toggle("hidden", !canCreate);
+  document.getElementById("newTaskButtonTable").classList.toggle("hidden", !canCreate);
+  document.getElementById("sendAllButton").classList.toggle("hidden", !canSendReminders());
+  document.getElementById("sendSelectedButton").classList.toggle("hidden", !canSendReminders());
+  document.getElementById("createReportButton").classList.toggle("hidden", !canCreateReports());
+  document.getElementById("createReportButtonReports").classList.toggle("hidden", !canCreateReports());
+  renderRoleSelectOptions();
+  renderRoleAssignments();
+}
+
+function renderRoleSelectOptions() {
+  const select = document.getElementById("roleSelect");
+  if (!select) return;
+  const allowedRoles = state.accessRole === "super_admin"
+    ? ["super_admin", "admin", "editor", "author", "contributor", "moderator", "member"]
+    : ["editor", "author", "contributor", "moderator", "member"];
+  select.innerHTML = allowedRoles.map(role => (
+    `<option value="${role}">${escapeHtml(ACCESS_ROLES[role].label)}</option>`
+  )).join("");
+  document.getElementById("roleManagementNote").textContent = state.accessRole === "super_admin"
+    ? "Super Admin dapat menetapkan seluruh role, termasuk Super Admin lainnya."
+    : "Administrator hanya dapat menetapkan Editor, Author, Contributor, Moderator, dan Member.";
 }
 
 function toggleProfileMenu() {
@@ -1386,7 +1600,108 @@ function watchProfiles() {
   });
 }
 
+function watchRoleAssignments() {
+  if (!canManageRoles()) return;
+  unsubscribeRoles = onSnapshot(query(collection(db, "roles")), snapshot => {
+    state.roleAssignments = snapshot.docs
+      .map(item => ({ email: item.id, ...item.data() }))
+      .sort((a, b) => normalizeEmail(a.email).localeCompare(normalizeEmail(b.email)));
+    renderRoleAssignments();
+  }, () => {
+    state.roleAssignments = [];
+    renderRoleAssignments();
+  });
+}
+
+async function saveRoleAssignment(event) {
+  event.preventDefault();
+  if (!requirePermission(canManageRoles(), "Hanya Super Admin atau Administrator yang dapat mengatur role.")) return;
+
+  const email = normalizeEmail(document.getElementById("roleEmailInput").value);
+  const role = document.getElementById("roleSelect").value;
+  if (!email || !ACCESS_ROLES[role]) return alert("Email atau role tidak valid.");
+
+  if (email === BOOTSTRAP_SUPER_ADMIN_EMAIL && role !== "super_admin") {
+    return alert("Role Super Admin utama tidak dapat diturunkan.");
+  }
+  if (state.accessRole !== "super_admin" && includesAny(role, ["super_admin", "admin"])) {
+    return alert("Administrator tidak dapat menetapkan Super Admin atau Administrator lain.");
+  }
+
+  try {
+    await setDoc(doc(db, "roles", email), {
+      email,
+      role,
+      updatedBy: normalizeEmail(currentUser?.email),
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    document.getElementById("roleAssignmentForm").reset();
+    renderRoleSelectOptions();
+  } catch (error) {
+    alert(`Role gagal disimpan: ${error.message}`);
+  }
+}
+
+function handleRoleAssignmentAction(event) {
+  const button = event.target.closest("[data-role-delete]");
+  if (!button) return;
+  removeRoleAssignment(button.dataset.roleDelete);
+}
+
+async function removeRoleAssignment(emailValue) {
+  const email = normalizeEmail(emailValue);
+  const assignment = state.roleAssignments.find(item => normalizeEmail(item.email) === email);
+  if (!requirePermission(canManageRoles(), "Anda tidak memiliki izin menghapus role.")) return;
+  if (email === BOOTSTRAP_SUPER_ADMIN_EMAIL) return alert("Super Admin utama tidak dapat dihapus.");
+  if (state.accessRole !== "super_admin" && includesAny(assignment?.role || "", ["super_admin", "admin"])) {
+    return alert("Administrator tidak dapat menghapus role tingkat atas.");
+  }
+  if (!confirm(`Hapus penetapan role untuk ${email}? Pengguna akan kembali menjadi Member.`)) return;
+
+  try {
+    await deleteDoc(doc(db, "roles", email));
+  } catch (error) {
+    alert(`Role gagal dihapus: ${error.message}`);
+  }
+}
+
+function renderRoleAssignments() {
+  const body = document.getElementById("roleAssignmentsBody");
+  if (!body) return;
+  if (!canManageRoles()) {
+    body.innerHTML = "";
+    return;
+  }
+
+  const assignments = [
+    {
+      email: BOOTSTRAP_SUPER_ADMIN_EMAIL,
+      role: "super_admin",
+      updatedBy: "Sistem",
+      protected: true
+    },
+    ...state.roleAssignments.filter(item => normalizeEmail(item.email) !== BOOTSTRAP_SUPER_ADMIN_EMAIL)
+  ];
+
+  body.innerHTML = assignments.map(item => {
+    const role = ACCESS_ROLES[item.role] || ACCESS_ROLES.member;
+    const canDelete = !item.protected &&
+      (state.accessRole === "super_admin" || !includesAny(item.role, ["super_admin", "admin"]));
+    return `
+      <tr>
+        <td><strong>${escapeHtml(item.email)}</strong></td>
+        <td><span class="access-role-badge role-${escapeHtml(item.role)}">${escapeHtml(role.label)}</span></td>
+        <td>${escapeHtml(item.updatedBy || "-")}</td>
+        <td>${canDelete
+          ? `<button class="text-button danger-text" type="button" data-role-delete="${escapeHtml(item.email)}">Hapus</button>`
+          : '<span class="protected-role-label">Dilindungi</span>'}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
 function render() {
+  if (currentUser) renderAccessControl();
   renderView();
   renderStats();
   renderTasks();
@@ -1404,6 +1719,10 @@ function render() {
 }
 
 function setView(view) {
+  if (view === "settings" && !canViewSettings()) {
+    alert("Menu Pengaturan hanya tersedia untuk role tingkat Manajemen Sistem dan Pengelolaan Data/Konten.");
+    return;
+  }
   state.activeView = view;
   renderView();
 }
@@ -1452,7 +1771,11 @@ function renderTasksTable() {
   const body = document.getElementById("tasksTableBody");
   const tasks = getFilteredTasks(true);
   body.innerHTML = tasks.length
-    ? tasks.map(task => `
+    ? tasks.map(task => {
+        const canEdit = canEditTask(task);
+        const canDelete = canDeleteTask(task);
+        const canChange = canChangeTaskStatus(task, "Proses");
+        return `
         <tr>
           <td>${escapeHtml(task.tanggal)}</td>
           <td><strong>${escapeHtml(task.namaTugas)}</strong><small>${escapeHtml(task.catatan || "")}</small></td>
@@ -1461,15 +1784,16 @@ function renderTasksTable() {
           <td>${escapeHtml(task.deadline || "-")}</td>
           <td>${escapeHtml(task.penanggungJawab || "-")}<small>${escapeHtml(task.emailPenanggungJawab || "")}</small></td>
           <td class="table-actions">
-            ${task.status !== "Proses" && task.status !== "Selesai" ? `<button class="link-button" data-action="start" data-id="${task.id}">Mulai</button>` : ""}
-            ${task.status !== "Selesai" ? `<button class="link-button" data-action="done" data-id="${task.id}">Selesai</button>` : ""}
+            ${canChange && task.status !== "Proses" && task.status !== "Selesai" ? `<button class="link-button" data-action="start" data-id="${task.id}">Mulai</button>` : ""}
+            ${canChange && task.status !== "Selesai" ? `<button class="link-button" data-action="done" data-id="${task.id}">Selesai</button>` : ""}
             <button class="link-button" data-action="preview" data-id="${task.id}">Preview</button>
-            <button class="link-button" data-action="email" data-id="${task.id}">Email</button>
-            <button class="link-button" data-action="edit" data-id="${task.id}">Edit</button>
-            <button class="link-button" data-action="delete" data-id="${task.id}">Hapus</button>
+            ${canSendReminders() ? `<button class="link-button" data-action="email" data-id="${task.id}">Email</button>` : ""}
+            ${canEdit ? `<button class="link-button" data-action="edit" data-id="${task.id}">Edit</button>` : ""}
+            ${canDelete ? `<button class="link-button" data-action="delete" data-id="${task.id}">Hapus</button>` : ""}
           </td>
         </tr>
-      `).join("")
+      `;
+      }).join("")
     : '<tr><td colspan="7">Tidak ada tugas.</td></tr>';
 
   body.querySelectorAll("[data-action]").forEach(button => bindTaskAction(button));
@@ -1791,6 +2115,9 @@ function taskCard(task) {
   const urgency = getUrgency(task);
   const ownerName = task.penanggungJawab || "Belum ditentukan";
   const ownerEmail = task.emailPenanggungJawab || "";
+  const canEdit = canEditTask(task);
+  const canDelete = canDeleteTask(task);
+  const canChange = canChangeTaskStatus(task, "Proses");
 
   return `
     <article class="task-card">
@@ -1816,12 +2143,12 @@ function taskCard(task) {
         </span>
       </div>
       <div class="card-actions">
-        ${task.status !== "Proses" && task.status !== "Selesai" ? `<button class="link-button" data-action="start" data-id="${task.id}">Mulai</button>` : ""}
-        ${task.status !== "Selesai" ? `<button class="link-button" data-action="done" data-id="${task.id}">Selesai</button>` : ""}
+        ${canChange && task.status !== "Proses" && task.status !== "Selesai" ? `<button class="link-button" data-action="start" data-id="${task.id}">Mulai</button>` : ""}
+        ${canChange && task.status !== "Selesai" ? `<button class="link-button" data-action="done" data-id="${task.id}">Selesai</button>` : ""}
         <button class="link-button" data-action="preview" data-id="${task.id}">Preview</button>
-        <button class="link-button" data-action="email" data-id="${task.id}">Email</button>
-        <button class="link-button" data-action="edit" data-id="${task.id}">Edit</button>
-        <button class="link-button" data-action="delete" data-id="${task.id}">Hapus</button>
+        ${canSendReminders() ? `<button class="link-button" data-action="email" data-id="${task.id}">Email</button>` : ""}
+        ${canEdit ? `<button class="link-button" data-action="edit" data-id="${task.id}">Edit</button>` : ""}
+        ${canDelete ? `<button class="link-button" data-action="delete" data-id="${task.id}">Hapus</button>` : ""}
       </div>
     </article>
   `;
@@ -1855,6 +2182,7 @@ function bindTaskAction(button, runNow = false) {
 }
 
 function openTaskModal() {
+  if (!requirePermission(canCreateTask(), "Role Anda hanya memiliki akses baca dan tidak dapat membuat tugas.")) return;
   closeActionMenu();
   document.getElementById("modalTitle").textContent = "Tugas Baru";
   document.getElementById("taskId").value = "";
@@ -1862,7 +2190,9 @@ function openTaskModal() {
   document.getElementById("taskDate").value = state.today;
   document.getElementById("taskDeadline").value = "";
   document.getElementById("taskPriority").value = "Sedang";
-  document.getElementById("taskStatus").value = "Belum Selesai";
+  const statusInput = document.getElementById("taskStatus");
+  statusInput.value = state.accessRole === "contributor" ? "Tertunda" : "Belum Selesai";
+  statusInput.disabled = state.accessRole === "contributor";
   document.getElementById("taskOwner").value = "";
   document.getElementById("taskOwnerEmail").value = "";
   document.getElementById("taskNote").value = "";
@@ -1888,13 +2218,19 @@ async function saveTask(event) {
   if (!currentUser) return;
 
   const id = document.getElementById("taskId").value;
+  const existingTask = id ? state.tasks.find(item => item.id === id) : null;
+  const allowed = existingTask ? canEditTask(existingTask) : canCreateTask();
+  if (!requirePermission(allowed, "Anda tidak memiliki izin menyimpan tugas ini.")) return;
+  const forcedStatus = state.accessRole === "contributor"
+    ? "Tertunda"
+    : document.getElementById("taskStatus").value;
   const payload = {
-    ownerUid: currentUser.uid,
-    dibuatOleh: currentUser.email || "",
+    ownerUid: existingTask?.ownerUid || currentUser.uid,
+    dibuatOleh: existingTask?.dibuatOleh || currentUser.email || "",
     tanggal: document.getElementById("taskDate").value,
     namaTugas: document.getElementById("taskName").value.trim(),
     prioritas: document.getElementById("taskPriority").value,
-    status: document.getElementById("taskStatus").value,
+    status: forcedStatus,
     deadline: document.getElementById("taskDeadline").value,
     penanggungJawab: document.getElementById("taskOwner").value.trim(),
     emailPenanggungJawab: document.getElementById("taskOwnerEmail").value.trim(),
@@ -1932,13 +2268,16 @@ async function saveTask(event) {
 function editTask(id) {
   const task = state.tasks.find(item => item.id === id);
   if (!task) return alert("Tugas tidak ditemukan.");
+  if (!requirePermission(canEditTask(task), "Anda hanya dapat mengubah tugas sesuai kewenangan role Anda.")) return;
   document.getElementById("modalTitle").textContent = "Edit Tugas";
   document.getElementById("taskId").value = task.id;
   document.getElementById("taskName").value = task.namaTugas || "";
   document.getElementById("taskDate").value = task.tanggal || state.today;
   document.getElementById("taskDeadline").value = task.deadline || "";
   document.getElementById("taskPriority").value = task.prioritas || "Sedang";
-  document.getElementById("taskStatus").value = task.status || "Belum Selesai";
+  const statusInput = document.getElementById("taskStatus");
+  statusInput.value = task.status || "Belum Selesai";
+  statusInput.disabled = state.accessRole === "contributor";
   document.getElementById("taskOwner").value = task.penanggungJawab || "";
   document.getElementById("taskOwnerEmail").value = task.emailPenanggungJawab || "";
   document.getElementById("taskNote").value = task.catatan || "";
@@ -1946,6 +2285,8 @@ function editTask(id) {
 }
 
 async function removeTask(id) {
+  const task = state.tasks.find(item => item.id === id);
+  if (!requirePermission(canDeleteTask(task), "Anda tidak memiliki izin menghapus tugas ini.")) return;
   if (!confirm("Hapus tugas ini?")) return;
   try {
     removeTaskFromCache(id);
@@ -1961,8 +2302,10 @@ async function removeTask(id) {
 }
 
 async function setTaskStatus(id, status) {
+  const selectedTask = state.tasks.find(item => item.id === id);
+  if (!requirePermission(canChangeTaskStatus(selectedTask, status), "Anda tidak memiliki izin mengubah status tugas ini.")) return;
   try {
-    const task = state.tasks.find(item => item.id === id);
+    const task = selectedTask;
     if (task) {
       updateTaskCache({ ...task, status });
       state.tasks = loadCachedTasks();
@@ -1998,7 +2341,9 @@ function previewTask(id) {
       <div class="full"><dt>Catatan</dt><dd>${escapeHtml(task.catatan || "-")}</dd></div>
     </dl>
   `;
-  document.getElementById("previewSendButton").onclick = () => sendTaskEmail(task.id);
+  const sendButton = document.getElementById("previewSendButton");
+  sendButton.classList.toggle("hidden", !canSendReminders());
+  sendButton.onclick = () => sendTaskEmail(task.id);
   document.getElementById("previewModal").showModal();
 }
 
@@ -2007,6 +2352,7 @@ function closePreviewModal() {
 }
 
 function sendTaskEmail(id) {
+  if (!requirePermission(canSendReminders(), "Role Anda tidak dapat mengirim reminder.")) return;
   const task = state.tasks.find(item => item.id === id);
   if (!task) return alert("Tugas tidak ditemukan.");
   if (!task.emailPenanggungJawab) return alert("Email Penanggung Jawab belum diisi.");
@@ -2014,6 +2360,7 @@ function sendTaskEmail(id) {
 }
 
 function sendAllReminders() {
+  if (!requirePermission(canSendReminders(), "Role Anda tidak dapat mengirim reminder.")) return;
   closeActionMenu();
   const tasks = state.tasks.filter(task => task.status !== "Selesai" && (task.tanggal === state.today || isOverdue(task)));
   const recipients = [...new Set(tasks.map(task => task.emailPenanggungJawab).filter(Boolean))];
@@ -2022,6 +2369,7 @@ function sendAllReminders() {
 }
 
 function sendSelectedReminders() {
+  if (!requirePermission(canSendReminders(), "Role Anda tidak dapat mengirim reminder.")) return;
   const email = state.selectedRecipientEmail || document.getElementById("selectedRecipientEmail").value;
   if (!email) return alert("Pilih nama atau email penerima terlebih dahulu.");
   const tasks = state.tasks.filter(task =>
@@ -2056,6 +2404,7 @@ function sendEmail(tasks, recipients) {
 }
 
 function createReport() {
+  if (!requirePermission(canCreateReports(), "Role Anda hanya dapat melihat laporan.")) return;
   const tasks = state.tasks.filter(task => task.tanggal === state.today);
   const stats = buildStats(tasks);
   const summary = [
