@@ -1193,6 +1193,46 @@ pre { overflow: auto; margin: 0; padding: 12px; border-radius: 8px; background: 
 
 .firebase-storage-icon { background: #f59e0b; }
 .drive-storage-icon { background: #16a34a; }
+.sheets-storage-icon {
+  background: #e8f5ec;
+  color: #188038;
+}
+
+.sheet-storage-copy {
+  min-width: 0;
+  width: 100%;
+}
+
+.sheet-source-status {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.sheet-status-row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sheet-status-row strong {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.sheet-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.sheet-status-dot.ready { background: #16a34a; }
+.sheet-status-dot.loading { background: #2563eb; }
+.sheet-status-dot.error { background: #dc2626; }
 
 .drive-link {
   width: fit-content;

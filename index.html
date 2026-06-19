@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260619134500">
+  <link rel="stylesheet" href="styles.css?v=20260619152000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -307,6 +307,16 @@
                   </a>
                 </div>
               </section>
+              <section class="storage-item">
+                <span class="storage-icon sheets-storage-icon">S</span>
+                <div class="sheet-storage-copy">
+                  <strong>Google Spreadsheet</strong>
+                  <p>Tiga sheet publik dibaca sebagai sumber data tambahan untuk Chat AI.</p>
+                  <div class="sheet-source-status" id="sheetSourceStatus" aria-live="polite">
+                    <span>Menunggu sinkronisasi...</span>
+                  </div>
+                </div>
+              </section>
             </div>
           </article>
         </section>
@@ -466,7 +476,7 @@
     </section>
   </dialog>
 
-  <script src="firebase-config.js?v=20260619134500"></script>
-  <script type="module" src="app.js?v=20260619134500"></script>
+  <script src="firebase-config.js?v=20260619152000"></script>
+  <script type="module" src="app.js?v=20260619152000"></script>
 </body>
 </html>

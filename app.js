@@ -39,10 +39,32 @@ let unsubscribeTasks = null;
 let unsubscribeProfiles = null;
 let welcomeTimer = null;
 let aiContextTaskId = null;
+let externalSheetTimer = null;
+let externalSheetLastLoadedAt = 0;
+
+const EXTERNAL_SHEET_SOURCES = [
+  {
+    id: "data-utama",
+    label: "Sheet DATA UTAMA",
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR20HvphHOLEYaiTrgLSlBqFPkqSq0y44IYFQE_MDzMVjNHRHNpdQkYrOX2sLeu6OzQ_a4sXGzT7CYq/pub?gid=2034016714&single=true&output=csv"
+  },
+  {
+    id: "personil-bmc",
+    label: "Sheet PERSONIL BMC",
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR20HvphHOLEYaiTrgLSlBqFPkqSq0y44IYFQE_MDzMVjNHRHNpdQkYrOX2sLeu6OzQ_a4sXGzT7CYq/pub?gid=2048149704&single=true&output=csv"
+  },
+  {
+    id: "outsourcing",
+    label: "Sheet Outsourcing",
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR20HvphHOLEYaiTrgLSlBqFPkqSq0y44IYFQE_MDzMVjNHRHNpdQkYrOX2sLeu6OzQ_a4sXGzT7CYq/pub?gid=1030462578&single=true&output=csv"
+  }
+];
+
 let state = {
   tasks: [],
   people: [],
   reports: [],
+  externalSheets: createInitialExternalSheets(),
   today: getToday(),
   filter: "all",
   activeView: "dashboard",
@@ -129,6 +151,10 @@ onAuthStateChanged(auth, async user => {
 
   if (unsubscribeTasks) unsubscribeTasks();
   if (unsubscribeProfiles) unsubscribeProfiles();
+  if (externalSheetTimer) {
+    window.clearInterval(externalSheetTimer);
+    externalSheetTimer = null;
+  }
 
   if (user) {
     document.getElementById("userEmail").textContent = user.email;
@@ -141,11 +167,15 @@ onAuthStateChanged(auth, async user => {
     render();
     watchTasks();
     watchProfiles();
+    loadExternalSheetData();
+    externalSheetTimer = window.setInterval(loadExternalSheetData, 5 * 60 * 1000);
     showWelcomeToast();
   } else {
     currentProfile = null;
     state.tasks = [];
     state.people = [];
+    state.externalSheets = createInitialExternalSheets();
+    externalSheetLastLoadedAt = 0;
     state.syncMessage = "Menunggu login...";
     render();
   }
@@ -313,6 +343,9 @@ function closeActionMenu() {
 
 function openAiChat() {
   if (!currentUser) return;
+  if (Date.now() - externalSheetLastLoadedAt > 60 * 1000) {
+    loadExternalSheetData();
+  }
   document.getElementById("aiChatModal").showModal();
   window.setTimeout(() => document.getElementById("aiChatInput").focus(), 60);
 }
@@ -511,7 +544,10 @@ function buildLiveAiContext(tasks, people) {
   const datasets = [
     { label: "Tugas", records: tasks },
     { label: "Orang/Profil", records: people },
-    { label: "Laporan", records: reports }
+    { label: "Laporan", records: reports },
+    ...state.externalSheets
+      .filter(sheet => sheet.status === "ready")
+      .map(sheet => ({ label: sheet.label, records: sheet.records }))
   ];
   const fields = Array.from(new Set(datasets.flatMap(dataset =>
     dataset.records.flatMap(record => Object.keys(record || {}))
@@ -560,6 +596,24 @@ function answerFromLiveContext(question, context) {
 
   const tokens = getMeaningfulTokens(question);
   if (!tokens.length) return "";
+
+  const matchedDatasets = context.datasets.filter(dataset => {
+    const datasetName = normalizeSearchText(dataset.label);
+    return tokens.some(token => datasetName.includes(token));
+  });
+  if (matchedDatasets.length === 1) {
+    const dataset = matchedDatasets[0];
+    if (includesAny(question, ["berapa", "jumlah", "total", "banyak"])) {
+      return `${dataset.label} berisi ${dataset.records.length} data yang sedang terbaca.`;
+    }
+    if (includesAny(question, ["daftar", "tampilkan", "lihat", "siapa", "apa saja"])) {
+      return dataset.records.length
+        ? `${dataset.label} (${dataset.records.length} data):\n${dataset.records.slice(0, 12).map((record, index) =>
+          `- ${summarizeDynamicRecord(record, index)}`
+        ).join("\n")}${dataset.records.length > 12 ? `\n...dan ${dataset.records.length - 12} data lainnya.` : ""}`
+        : `${dataset.label} belum memiliki data yang dapat dibaca.`;
+    }
+  }
 
   const matches = [];
   context.datasets.forEach(dataset => {
@@ -633,6 +687,157 @@ function rankTextMatches(question, items) {
     .filter(result => result.score)
     .sort((a, b) => b.score - a.score)
     .map(result => result.item);
+}
+
+function createInitialExternalSheets() {
+  return EXTERNAL_SHEET_SOURCES.map(source => ({
+    ...source,
+    records: [],
+    status: "idle",
+    error: ""
+  }));
+}
+
+async function loadExternalSheetData() {
+  const loadingSheets = state.externalSheets.map(sheet => ({
+    ...sheet,
+    status: "loading",
+    error: ""
+  }));
+  state.externalSheets = loadingSheets;
+  renderExternalSheetStatus();
+
+  const results = await Promise.all(loadingSheets.map(async sheet => {
+    try {
+      const separator = sheet.url.includes("?") ? "&" : "?";
+      const response = await fetch(`${sheet.url}${separator}_=${Date.now()}`, {
+        cache: "no-store"
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const csvText = await response.text();
+      if (!csvText.trim()) throw new Error("Data kosong");
+      return {
+        ...sheet,
+        records: csvToRecords(csvText),
+        status: "ready",
+        error: ""
+      };
+    } catch (error) {
+      return {
+        ...sheet,
+        status: "error",
+        error: error?.message || "Gagal memuat data"
+      };
+    }
+  }));
+
+  state.externalSheets = results;
+  externalSheetLastLoadedAt = Date.now();
+  renderExternalSheetStatus();
+}
+
+function csvToRecords(csvText) {
+  const rows = parseCsv(csvText)
+    .map(row => row.map(value => String(value || "").trim()));
+  if (!rows.length) return [];
+
+  const headerIndex = findCsvHeaderRow(rows);
+  const headers = makeUniqueHeaders(rows[headerIndex]);
+
+  return rows.slice(headerIndex + 1)
+    .filter(row => row.some(value => value !== ""))
+    .map((row, index) => {
+      const record = { "_Sumber Baris": headerIndex + index + 2 };
+      headers.forEach((header, columnIndex) => {
+        record[header] = row[columnIndex] || "";
+      });
+      return record;
+    });
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const nextCharacter = text[index + 1];
+
+    if (character === "\"") {
+      if (quoted && nextCharacter === "\"") {
+        value += "\"";
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (character === "," && !quoted) {
+      row.push(value);
+      value = "";
+    } else if ((character === "\n" || character === "\r") && !quoted) {
+      if (character === "\r" && nextCharacter === "\n") index += 1;
+      row.push(value);
+      rows.push(row);
+      row = [];
+      value = "";
+    } else {
+      value += character;
+    }
+  }
+
+  if (value || row.length) {
+    row.push(value);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function findCsvHeaderRow(rows) {
+  let bestIndex = 0;
+  let bestScore = -1;
+  rows.slice(0, 30).forEach((row, index) => {
+    const nonEmpty = row.filter(value => value !== "");
+    const textCells = nonEmpty.filter(value => /[a-z]/i.test(value));
+    const score = (nonEmpty.length * 2) + textCells.length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+  return bestIndex;
+}
+
+function makeUniqueHeaders(headerRow) {
+  const counts = new Map();
+  return headerRow.map((header, index) => {
+    const base = header || `Kolom ${index + 1}`;
+    const count = (counts.get(base) || 0) + 1;
+    counts.set(base, count);
+    return count === 1 ? base : `${base} (${count})`;
+  });
+}
+
+function renderExternalSheetStatus() {
+  const container = document.getElementById("sheetSourceStatus");
+  if (!container) return;
+
+  container.innerHTML = state.externalSheets.map(sheet => {
+    const statusLabel = sheet.status === "ready"
+      ? `${sheet.records.length} data`
+      : sheet.status === "loading"
+        ? "Memuat..."
+        : sheet.status === "error"
+          ? "Tidak dapat dibaca"
+          : "Menunggu";
+    return `
+      <div class="sheet-status-row">
+        <span class="sheet-status-dot ${escapeHtml(sheet.status)}"></span>
+        <span>${escapeHtml(sheet.label)}</span>
+        <strong>${escapeHtml(statusLabel)}</strong>
+      </div>
+    `;
+  }).join("");
 }
 
 function buildPeopleDirectory(tasks) {
@@ -940,6 +1145,7 @@ function render() {
   renderAgenda();
   renderFocusList();
   renderLocalAI();
+  renderExternalSheetStatus();
   renderAttentionBanner();
   document.getElementById("todayText").textContent = `Hari ini: ${formatHumanDate(state.today)}`;
   document.getElementById("syncStatus").textContent = state.syncMessage;
