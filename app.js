@@ -1436,6 +1436,23 @@ function handleJobsTableClick(event) {
   if (job) openJobDetail(job);
 }
 
+function getJobDetailColumns(records) {
+  return getPersonnelColumns(records).filter(column => {
+    const normalized = normalizeSearchText(column);
+    return normalized !== "bobot" && normalized !== "beban";
+  });
+}
+
+function getJobDetailColumnClass(column) {
+  const normalized = normalizeSearchText(column);
+  if (normalized === "id") return "compact";
+  if (normalized.includes("nama personil")) return "wide";
+  if (normalized === "pekerjaan") return "wide";
+  if (normalized.includes("remunerasi") || normalized.includes("billing rate")) return "medium";
+  if (normalized.includes("posisi") || normalized.includes("jabatan")) return "medium";
+  return "";
+}
+
 function openJobDetail(job) {
   const modal = document.getElementById("jobDetailModal");
   const title = document.getElementById("jobDetailTitle");
@@ -1448,33 +1465,31 @@ function openJobDetail(job) {
     source.textContent = "Rincian pekerjaan dari Sheet DATA UTAMA";
   }
 
-  const columns = getPersonnelColumns(job.records);
+  const columns = getJobDetailColumns(job.records);
   body.innerHTML = `
     <div class="job-detail-summary">
       <div><span>Tanggal Mulai</span><strong>${escapeHtml(job.tanggalMulai || "-")}</strong></div>
       <div><span>Tanggal Selesai</span><strong>${escapeHtml(job.tanggalSelesai || "-")}</strong></div>
       <div><span>Jumlah Personil</span><strong>${job.records.length}</strong></div>
     </div>
-    <div class="job-record-list">
-      ${job.records.map((record, index) => `
-        <article class="job-record-card">
-          <header class="job-record-header">
-            <div>
-              <small>Personil ${index + 1}</small>
-              <h3>${escapeHtml(getPersonnelName(record) || `Data ${index + 1}`)}</h3>
-            </div>
-            <span class="job-record-number">${String(index + 1).padStart(2, "0")}</span>
-          </header>
-          <dl class="job-record-fields">
-            ${columns.map(column => `
-              <div>
-                <dt>${escapeHtml(humanizeFieldName(column))}</dt>
-                <dd>${escapeHtml(record[column] || "-")}</dd>
-              </div>
-            `).join("")}
-          </dl>
-        </article>
-      `).join("")}
+    <div class="job-detail-table-surface">
+      <table class="job-detail-wide-table">
+        <colgroup>
+          ${columns.map(column => `<col class="${getJobDetailColumnClass(column)}">`).join("")}
+        </colgroup>
+        <thead>
+          <tr>
+            ${columns.map(column => `<th>${escapeHtml(humanizeFieldName(column))}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${job.records.map(record => `
+            <tr>
+              ${columns.map(column => `<td>${escapeHtml(record[column] || "-")}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
     </div>
   `;
   modal.showModal();
