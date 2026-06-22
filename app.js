@@ -1576,13 +1576,45 @@ function exportCurrentJobDetailExcel() {
   URL.revokeObjectURL(url);
 }
 
+function printHtmlDocument(html) {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "1px";
+  frame.style.height = "1px";
+  frame.style.border = "0";
+  frame.style.opacity = "0";
+  frame.style.pointerEvents = "none";
+
+  const cleanup = () => {
+    window.setTimeout(() => frame.remove(), 500);
+  };
+
+  frame.onload = () => {
+    const printWindow = frame.contentWindow;
+    if (!printWindow) {
+      cleanup();
+      alert("Dokumen PDF tidak dapat disiapkan. Muat ulang halaman lalu coba kembali.");
+      return;
+    }
+    printWindow.addEventListener("afterprint", cleanup, { once: true });
+    window.setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 150);
+  };
+
+  document.body.appendChild(frame);
+  frame.srcdoc = html;
+}
+
 function exportCurrentJobDetailPdf() {
   const data = getCurrentJobDetailExportData();
   if (!data) return;
 
-  const win = window.open("", "_blank", "noopener,noreferrer,width=1400,height=900");
-  if (!win) return alert("Popup browser diblokir. Izinkan popup untuk export PDF.");
-  win.document.write(`
+  const html = `
     <html>
       <head>
         <title>${escapeHtml(data.title)}</title>
@@ -1601,16 +1633,10 @@ function exportCurrentJobDetailPdf() {
         <h1>${escapeHtml(data.title)}</h1>
         <p>Tanggal ${escapeHtml(data.tanggalMulai)} sampai ${escapeHtml(data.tanggalSelesai)} - ${data.records.length} personil</p>
         ${buildJobDetailExportTable(data)}
-        <script>
-          window.onload = () => {
-            window.focus();
-            window.print();
-          };
-        <\/script>
       </body>
     </html>
-  `);
-  win.document.close();
+  `;
+  printHtmlDocument(html);
 }
 
 async function addJobFromPrompt() {
@@ -1742,9 +1768,7 @@ function exportJobsPdf() {
   closeJobsMenus();
   const data = getJobsExportData();
   if (!data) return;
-  const win = window.open("", "_blank", "noopener,noreferrer,width=1200,height=800");
-  if (!win) return alert("Popup browser diblokir. Izinkan popup untuk export PDF.");
-  win.document.write(`
+  const html = `
     <html>
       <head>
         <title>${escapeHtml(data.title)}</title>
@@ -1763,16 +1787,10 @@ function exportJobsPdf() {
         <h1>${escapeHtml(data.title)}</h1>
         <p>Diekspor ${formatHumanDate(state.today)} - ${data.records.length} pekerjaan</p>
         ${buildJobsExportTable(data)}
-        <script>
-          window.onload = () => {
-            window.focus();
-            window.print();
-          };
-        <\/script>
       </body>
     </html>
-  `);
-  win.document.close();
+  `;
+  printHtmlDocument(html);
 }
 
 function exportJobsCsv() {
@@ -2243,9 +2261,7 @@ function exportPersonnelExcel() {
 function exportPersonnelPdf() {
   const data = getPersonnelExportData();
   if (!data) return;
-  const win = window.open("", "_blank", "noopener,noreferrer,width=1200,height=800");
-  if (!win) return alert("Popup browser diblokir. Izinkan popup untuk export PDF.");
-  win.document.write(`
+  const html = `
     <html>
       <head>
         <title>${escapeHtml(data.title)}</title>
@@ -2264,16 +2280,10 @@ function exportPersonnelPdf() {
         <h1>${escapeHtml(data.title)}</h1>
         <p>Diekspor ${formatHumanDate(state.today)} - ${data.records.length} data</p>
         ${buildPersonnelExportTable(data)}
-        <script>
-          window.onload = () => {
-            window.focus();
-            window.print();
-          };
-        <\/script>
       </body>
     </html>
-  `);
-  win.document.close();
+  `;
+  printHtmlDocument(html);
 }
 
 function formatSyncTime(timestamp) {
