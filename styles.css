@@ -2317,6 +2317,46 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
   font-size: 11px;
 }
 
+.dashboard-bento-home {
+  margin-bottom: 26px;
+}
+
+.dashboard-bento-home .portfolio-workspace-header h2 {
+  font-size: 27px;
+}
+
+.dashboard-bento-home .portfolio-summary-card {
+  background: rgba(234, 242, 255, 0.98);
+}
+
+.dashboard-bento-home .portfolio-featured-section {
+  margin-top: 2px;
+}
+
+.dashboard-operational-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin: 4px 0 14px;
+  padding-top: 4px;
+}
+
+.dashboard-operational-heading h2 {
+  margin: 4px 0 2px;
+  color: var(--ink);
+}
+
+.dashboard-operational-heading p,
+.portfolio-summary-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.portfolio-summary-hint {
+  margin-top: 12px;
+}
+
 .jobs-panel {
   min-height: 520px;
   overflow: visible;
@@ -3441,6 +3481,8 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .portfolio-workspace-shell .portfolio-lower-grid { grid-template-columns: 1fr; }
   .portfolio-agenda-item { grid-template-columns: 72px minmax(0, 1fr); }
   .portfolio-agenda-item small { grid-column: 2; text-align: left; }
+  .dashboard-bento-home { margin-bottom: 18px; }
+  .dashboard-operational-heading { margin-top: 0; }
   .personnel-search { grid-column: 1 / -1; }
   .personnel-table-wrap { border: 0; overflow: visible; }
   .personnel-table { display: block; min-width: 0; background: transparent; }

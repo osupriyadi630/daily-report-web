@@ -189,7 +189,7 @@ let state = {
   externalSheets: createInitialExternalSheets(createDefaultAppConfig()),
   today: getToday(),
   filter: "all",
-  activeView: "jobs",
+  activeView: "dashboard",
   syncMessage: "Menunggu login...",
   authMode: "login",
   selectedRecipientEmail: "",
@@ -207,6 +207,7 @@ let state = {
   jobsPageSize: 25,
   jobsVisibleRecords: [],
   portfolioFeaturedJobs: [],
+  dashboardFeaturedJobs: [],
   dashboardActivePersonnelRecords: [],
   dashboardInactivePersonnelRecords: [],
   selectedTenderId: "",
@@ -306,6 +307,9 @@ function bindControls() {
   document.getElementById("personnelTableBody").addEventListener("click", handlePersonnelTableClick);
   document.getElementById("dashboardActivePersonnelBody").addEventListener("click", handleDashboardPersonnelClick);
   document.getElementById("dashboardInactivePersonnelBody").addEventListener("click", handleDashboardPersonnelClick);
+  document.getElementById("dashboardAddItemButton").addEventListener("click", openTaskModal);
+  document.getElementById("dashboardOpenPortfolioButton").addEventListener("click", () => setView("jobs"));
+  document.getElementById("dashboardFeaturedJobs").addEventListener("click", handleDashboardPortfolioCardClick);
   document.getElementById("addPersonnelButton").addEventListener("click", () => openPersonnelForm());
   document.getElementById("closePersonnelDetailButton").addEventListener("click", closePersonnelDetail);
   document.getElementById("closePersonnelDetailFooter").addEventListener("click", closePersonnelDetail);
@@ -1947,6 +1951,11 @@ function renderPortfolioOverview(filteredJobs) {
 }
 
 function renderPortfolioActivity(allJobs) {
+  const activities = buildPortfolioActivities(allJobs);
+  document.getElementById("portfolioActivityList").innerHTML = renderPortfolioActivityItems(activities);
+}
+
+function buildPortfolioActivities(allJobs) {
   const activities = [];
   state.tenders.slice(0, 2).forEach(tender => {
     activities.push({
@@ -1979,7 +1988,11 @@ function renderPortfolioActivity(allJobs) {
     });
   }
 
-  document.getElementById("portfolioActivityList").innerHTML = activities.length
+  return activities.slice(0, 3);
+}
+
+function renderPortfolioActivityItems(activities) {
+  return activities.length
     ? activities.slice(0, 3).map(activity => `
         <div class="portfolio-activity-item">
           <span class="portfolio-activity-avatar ${escapeHtml(activity.tone)}">${escapeHtml(activity.initials)}</span>
@@ -2004,6 +2017,98 @@ function renderPortfolioAgenda() {
         </div>
       `).join("")
     : '<p class="portfolio-empty-note">Belum ada agenda prioritas.</p>';
+}
+
+function renderDashboardPortfolioHome() {
+  const allJobs = buildJobsFromAllSources();
+  const counts = {
+    total: allJobs.length,
+    active: allJobs.filter(job => getPortfolioStatusKey(job) === "active").length,
+    finish: allJobs.filter(job => ["finish", "finish-overtime"].includes(getPortfolioStatusKey(job))).length,
+    tender: allJobs.filter(job => getPortfolioStatusKey(job) === "tender").length,
+    upcoming: allJobs.filter(job => getPortfolioStatusKey(job) === "upcoming").length
+  };
+  document.getElementById("dashboardPortfolioYearLabel").textContent = `Portfolio tahun ${getCurrentSummaryYear()}`;
+  document.getElementById("dashboardPortfolioTotal").textContent = counts.total;
+  document.getElementById("dashboardPortfolioActive").textContent = counts.active;
+  document.getElementById("dashboardPortfolioFinish").textContent = counts.finish;
+  document.getElementById("dashboardPortfolioTender").textContent = counts.tender;
+  document.getElementById("dashboardPortfolioUpcoming").textContent = counts.upcoming;
+
+  const featured = [...allJobs]
+    .sort((left, right) =>
+      getPortfolioCardPriority(left) - getPortfolioCardPriority(right) ||
+      left.pekerjaan.localeCompare(right.pekerjaan, "id")
+    )
+    .slice(0, 3);
+  state.dashboardFeaturedJobs = featured;
+  document.getElementById("dashboardFeaturedJobs").innerHTML = featured.length
+    ? featured.map((job, index) => renderPortfolioJobCard(job, index, "dashboard-portfolio-job-index")).join("")
+    : '<div class="portfolio-empty">Belum ada proyek yang dapat ditampilkan.</div>';
+
+  document.getElementById("dashboardActivityList").innerHTML =
+    renderPortfolioActivityItems(buildPortfolioActivities(allJobs));
+
+  const agenda = getFocusTasks().slice(0, 2);
+  document.getElementById("dashboardAgendaCount").textContent = `${agenda.length} agenda`;
+  document.getElementById("dashboardAgendaBento").innerHTML = agenda.length
+    ? agenda.map(task => `
+        <div class="portfolio-agenda-item">
+          <span>${escapeHtml(task.deadline ? task.deadline.slice(0, 10) : task.tanggal || "-")}</span>
+          <strong>${escapeHtml(task.namaTugas)}</strong>
+          <small>${escapeHtml(task.penanggungJawab || "Penanggung jawab belum diisi")}</small>
+        </div>
+      `).join("")
+    : '<p class="portfolio-empty-note">Belum ada agenda prioritas.</p>';
+
+  const availablePersonnel = getAllIntegratedPersonnelRecords(getCurrentSummaryYear())
+    .filter(record => getPersonnelActiveWork(record) <= 0).length;
+  const brief = [];
+  if (counts.tender) brief.push(`${counts.tender} Tender perlu dipantau`);
+  if (counts.upcoming) brief.push(`${counts.upcoming} proyek Upcoming perlu persiapan`);
+  if (availablePersonnel) brief.push(`${availablePersonnel} personil tersedia untuk dialokasikan`);
+  document.getElementById("dashboardPortfolioBrief").textContent = brief.length
+    ? `${brief.join(". ")}.`
+    : "Seluruh proyek dan kapasitas tim berada dalam kondisi stabil.";
+}
+
+function renderPortfolioJobCard(job, index, dataAttribute) {
+  const statusKey = getPortfolioStatusKey(job);
+  const people = getPortfolioPeople(job);
+  const progress = getPortfolioProgress(job);
+  const personCount = job.personnelCount ?? job.records.length;
+  const footerLabel = statusKey === "tender"
+    ? `${progress}% dokumen`
+    : job.tanggalSelesai || `${personCount} personil`;
+  return `
+    <button class="portfolio-job-card status-${escapeHtml(statusKey)}" type="button" data-${dataAttribute}="${index}">
+      <span class="portfolio-card-accent"></span>
+      <span class="portfolio-card-heading">
+        <strong>${escapeHtml(job.pekerjaan)}</strong>
+        <span class="portfolio-status">${escapeHtml(getPortfolioStatusLabel(job))}</span>
+      </span>
+      <span class="portfolio-card-team">
+        <span class="portfolio-avatars">
+          ${people.map(name => `<i title="${escapeHtml(name)}">${escapeHtml(getInitials(name))}</i>`).join("")}
+          ${people.length ? "" : "<em>Belum ada personil</em>"}
+        </span>
+        <small>${personCount} personil</small>
+      </span>
+      <span class="portfolio-progress-track" aria-label="Indikator tahap ${progress}%">
+        <span style="width:${progress}%"></span>
+      </span>
+      <span class="portfolio-card-footer">
+        <b>${progress}%</b>
+        <small>${escapeHtml(footerLabel)}</small>
+      </span>
+    </button>
+  `;
+}
+
+function handleDashboardPortfolioCardClick(event) {
+  const card = event.target.closest("[data-dashboard-portfolio-job-index]");
+  if (!card) return;
+  openPortfolioJob(state.dashboardFeaturedJobs[Number(card.dataset.dashboardPortfolioJobIndex)]);
 }
 
 function renderJobs() {
@@ -4593,6 +4698,7 @@ function render() {
   renderPersonnel();
   renderJobs();
   renderTenders();
+  renderDashboardPortfolioHome();
   renderDashboardWorkSummary();
   renderAttentionBanner();
   document.getElementById("todayText").textContent = `Hari ini: ${formatHumanDate(state.today)}`;

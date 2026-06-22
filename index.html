@@ -33,7 +33,7 @@
       showAppBootError("Koneksi memerlukan waktu terlalu lama. Silakan refresh halaman.");
     }, 15000);
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260623023000">
+  <link rel="stylesheet" href="styles.css?v=20260623033000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -121,9 +121,9 @@
         </div>
       </div>
       <nav class="nav">
-        <button class="nav-item" data-view="dashboard">Dashboard</button>
+        <button class="nav-item active" data-view="dashboard">Dashboard</button>
         <button class="nav-item" data-view="tenders">Tender</button>
-        <button class="nav-item active" data-view="jobs">Portofolio</button>
+        <button class="nav-item" data-view="jobs">Portofolio</button>
         <button class="nav-item" data-view="personnel">Personil</button>
         <button class="nav-item" data-view="tasks">Tugas</button>
         <button class="nav-item" data-view="reports">Laporan</button>
@@ -189,6 +189,93 @@
           </div>
           <button type="button" id="closeWelcomeToast" aria-label="Tutup sapaan">x</button>
         </aside>
+
+        <section class="portfolio-workspace-shell dashboard-bento-home">
+          <header class="portfolio-workspace-header">
+            <div>
+              <span class="portfolio-eyebrow">Portfolio Home</span>
+              <h2>Dashboard Workspace</h2>
+              <p>Proyek, aktivitas, kapasitas tim, dan fokus harian dalam satu tampilan.</p>
+            </div>
+            <button class="primary-button portfolio-add-button" id="dashboardAddItemButton" type="button">+ Tambah Item</button>
+          </header>
+
+          <section class="portfolio-bento-top">
+            <article class="portfolio-summary-card">
+              <span id="dashboardPortfolioYearLabel">Portfolio tahun 2026</span>
+              <div class="portfolio-total-line">
+                <strong id="dashboardPortfolioTotal">0</strong>
+                <small>total pekerjaan</small>
+              </div>
+              <div class="portfolio-metrics" aria-label="Ringkasan pekerjaan">
+                <article class="active">
+                  <strong id="dashboardPortfolioActive">0</strong>
+                  <span>Aktif</span>
+                </article>
+                <article class="finish">
+                  <strong id="dashboardPortfolioFinish">0</strong>
+                  <span>Finish</span>
+                </article>
+                <article class="tender">
+                  <strong id="dashboardPortfolioTender">0</strong>
+                  <span>Tender</span>
+                </article>
+                <article class="upcoming">
+                  <strong id="dashboardPortfolioUpcoming">0</strong>
+                  <span>Upcoming</span>
+                </article>
+              </div>
+              <p class="portfolio-summary-hint">Klik kartu proyek untuk membuka rincian lengkap.</p>
+            </article>
+
+            <article class="portfolio-activity-card">
+              <div class="portfolio-card-title-row">
+                <div>
+                  <h3>Aktivitas Terbaru</h3>
+                  <p>Perubahan terbaru dari proyek, Tender, dan tugas.</p>
+                </div>
+                <span class="portfolio-live-badge">Live</span>
+              </div>
+              <div id="dashboardActivityList" class="portfolio-activity-list"></div>
+            </article>
+          </section>
+
+          <section class="portfolio-featured-section">
+            <div class="portfolio-section-heading">
+              <div>
+                <h2>Koleksi Pilihan</h2>
+                <p>Proyek yang perlu perhatian atau memiliki tahap aktif.</p>
+              </div>
+              <button class="text-button" id="dashboardOpenPortfolioButton" type="button">Lihat semua Portofolio</button>
+            </div>
+            <div id="dashboardFeaturedJobs" class="portfolio-featured-grid"></div>
+          </section>
+
+          <section class="portfolio-lower-grid">
+            <article class="portfolio-brief-panel">
+              <span class="portfolio-brief-icon">AI</span>
+              <div>
+                <h2>AI Brief</h2>
+                <p id="dashboardPortfolioBrief">Memuat ringkasan dashboard...</p>
+              </div>
+            </article>
+            <article class="portfolio-agenda-panel">
+              <div class="portfolio-card-title-row">
+                <h2>Agenda Tim</h2>
+                <span class="portfolio-agenda-count" id="dashboardAgendaCount">0 agenda</span>
+              </div>
+              <div id="dashboardAgendaBento" class="portfolio-agenda-list"></div>
+            </article>
+          </section>
+        </section>
+
+        <section class="dashboard-operational-heading">
+          <div>
+            <span class="portfolio-eyebrow">Operasional Tugas</span>
+            <h2>Aktivitas Harian</h2>
+            <p>Kanban, filter, laporan, dan rincian tugas tetap tersedia.</p>
+          </div>
+        </section>
 
         <section id="attentionBanner" class="attention-banner hidden"></section>
 
@@ -1207,6 +1294,6 @@
   </dialog>
 
   <script src="firebase-config.js?v=20260622180000"></script>
-  <script type="module" src="app.js?v=20260623023000"></script>
+  <script type="module" src="app.js?v=20260623033000"></script>
 </body>
 </html>
