@@ -1373,7 +1373,7 @@ function renderJobs() {
         <td data-label="Pekerjaan"><strong>${escapeHtml(job.pekerjaan)}</strong></td>
         <td data-label="Tanggal Mulai">${escapeHtml(job.tanggalMulai || "-")}</td>
         <td data-label="Tanggal Selesai">${escapeHtml(job.tanggalSelesai || "-")}</td>
-        <td data-label="Jumlah Data">${job.records.length}</td>
+        <td data-label="Jumlah Personil">${job.records.length}</td>
       </tr>
     `).join("");
   }
@@ -1527,12 +1527,12 @@ function getJobsExportData() {
   }
   return {
     title: "Daftar Pekerjaan",
-    columns: ["Pekerjaan", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Data"],
+    columns: ["Pekerjaan", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Personil"],
     records: jobs.map(job => ({
       Pekerjaan: job.pekerjaan,
       "Tanggal Mulai": job.tanggalMulai || "-",
       "Tanggal Selesai": job.tanggalSelesai || "-",
-      "Jumlah Data": job.records.length
+      "Jumlah Personil": job.records.length
     }))
   };
 }
