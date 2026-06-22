@@ -1266,32 +1266,39 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 }
 
 #jobDetailModal {
-  width: min(1120px, calc(100vw - 32px));
+  width: min(1440px, calc(100vw - 24px));
   max-width: none;
   max-height: min(860px, calc(100dvh - 32px));
   overflow: hidden;
 }
 
-.job-detail-card {
+#jobDetailModal .job-detail-card {
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: 100%;
+  min-width: 0;
   max-width: none;
   max-height: min(860px, calc(100dvh - 32px));
   box-sizing: border-box;
 }
 
-.job-detail-card > header {
+#jobDetailModal .job-detail-card > header {
+  width: 100%;
+  box-sizing: border-box;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
 }
 
-.job-detail-card > footer {
+#jobDetailModal .job-detail-card > footer {
+  width: 100%;
+  box-sizing: border-box;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
 .job-detail-body {
+  width: 100%;
   min-height: 0;
+  box-sizing: border-box;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -2212,7 +2219,7 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     overflow: hidden;
   }
 
-  .job-detail-card {
+  #jobDetailModal .job-detail-card {
     max-height: calc(100dvh - 20px);
     padding: 14px;
   }
