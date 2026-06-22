@@ -33,7 +33,7 @@
       showAppBootError("Koneksi memerlukan waktu terlalu lama. Silakan refresh halaman.");
     }, 15000);
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260623051500">
+  <link rel="stylesheet" href="styles.css?v=20260623061000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -201,31 +201,31 @@
           </header>
 
           <section class="portfolio-bento-top">
-            <article class="portfolio-summary-card">
-              <span id="dashboardPortfolioYearLabel">Portfolio tahun 2026</span>
-              <div class="portfolio-total-line">
+            <article class="portfolio-summary-card" id="dashboardPortfolioSummary">
+              <span id="dashboardPortfolioYearLabel">Seluruh portofolio</span>
+              <button class="portfolio-total-line portfolio-summary-trigger" type="button" data-portfolio-summary-filter="all" data-portfolio-summary-context="dashboard" aria-label="Buka seluruh pekerjaan">
                 <strong id="dashboardPortfolioTotal">0</strong>
                 <small>total pekerjaan</small>
-              </div>
+              </button>
               <div class="portfolio-metrics" aria-label="Ringkasan pekerjaan">
-                <article class="active">
+                <button class="portfolio-metric-card active" type="button" data-portfolio-summary-filter="ongoing" data-portfolio-summary-context="dashboard" aria-label="Buka pekerjaan aktif">
                   <strong id="dashboardPortfolioActive">0</strong>
                   <span>Aktif</span>
-                </article>
-                <article class="finish">
+                </button>
+                <button class="portfolio-metric-card finish" type="button" data-portfolio-summary-filter="completed" data-portfolio-summary-context="dashboard" aria-label="Buka seluruh pekerjaan selesai">
                   <strong id="dashboardPortfolioFinish">0</strong>
                   <span>Finish</span>
-                </article>
-                <article class="tender">
+                </button>
+                <button class="portfolio-metric-card tender" type="button" data-portfolio-summary-filter="tender" data-portfolio-summary-context="dashboard" aria-label="Buka pekerjaan tender">
                   <strong id="dashboardPortfolioTender">0</strong>
                   <span>Tender</span>
-                </article>
-                <article class="upcoming">
+                </button>
+                <button class="portfolio-metric-card upcoming" type="button" data-portfolio-summary-filter="upcoming" data-portfolio-summary-context="dashboard" aria-label="Buka pekerjaan mendatang">
                   <strong id="dashboardPortfolioUpcoming">0</strong>
                   <span>Upcoming</span>
-                </article>
+                </button>
               </div>
-              <p class="portfolio-summary-hint">Klik kartu proyek untuk membuka rincian lengkap.</p>
+              <p class="portfolio-summary-hint">Klik angka ringkasan untuk membuka daftar yang sudah difilter.</p>
             </article>
 
             <article class="portfolio-activity-card">
@@ -424,29 +424,29 @@
           </header>
 
           <section class="portfolio-bento-top">
-            <article class="portfolio-summary-card">
-              <span id="portfolioYearLabel">Portfolio tahun 2026</span>
-              <div class="portfolio-total-line">
+            <article class="portfolio-summary-card" id="portfolioSummary">
+              <span id="portfolioYearLabel">Seluruh portofolio</span>
+              <button class="portfolio-total-line portfolio-summary-trigger" type="button" data-portfolio-summary-filter="all" data-portfolio-summary-context="portfolio" aria-label="Tampilkan seluruh pekerjaan">
                 <strong id="portfolioTotalCount">0</strong>
                 <small>total pekerjaan</small>
-              </div>
+              </button>
               <div class="portfolio-metrics" aria-label="Ringkasan portofolio">
-                <article class="active">
+                <button class="portfolio-metric-card active" type="button" data-portfolio-summary-filter="ongoing" data-portfolio-summary-context="portfolio" aria-label="Filter pekerjaan aktif">
                   <strong id="portfolioActiveCount">0</strong>
                   <span>Aktif</span>
-                </article>
-                <article class="finish">
+                </button>
+                <button class="portfolio-metric-card finish" type="button" data-portfolio-summary-filter="completed" data-portfolio-summary-context="portfolio" aria-label="Filter seluruh pekerjaan selesai">
                   <strong id="portfolioFinishCount">0</strong>
                   <span>Finish</span>
-                </article>
-                <article class="tender">
+                </button>
+                <button class="portfolio-metric-card tender" type="button" data-portfolio-summary-filter="tender" data-portfolio-summary-context="portfolio" aria-label="Filter pekerjaan tender">
                   <strong id="portfolioTenderCount">0</strong>
                   <span>Tender</span>
-                </article>
-                <article class="upcoming">
+                </button>
+                <button class="portfolio-metric-card upcoming" type="button" data-portfolio-summary-filter="upcoming" data-portfolio-summary-context="portfolio" aria-label="Filter pekerjaan mendatang">
                   <strong id="portfolioUpcomingCount">0</strong>
                   <span>Upcoming</span>
-                </article>
+                </button>
               </div>
               <p id="jobsSyncText" class="portfolio-sync-text">Menunggu sinkronisasi DATA UTAMA...</p>
             </article>
@@ -531,6 +531,7 @@
                 <option value="all">Semua Status</option>
                 <option value="ongoing">Ongoing</option>
                 <option value="upcoming">Upcoming</option>
+                <option value="completed">Semua Selesai</option>
                 <option value="finish">Finish</option>
                 <option value="finish-overtime">Finish Overtime</option>
                 <option value="tender">Tender</option>
@@ -1294,6 +1295,6 @@
   </dialog>
 
   <script src="firebase-config.js?v=20260622180000"></script>
-  <script type="module" src="app.js?v=20260623035000"></script>
+  <script type="module" src="app.js?v=20260623061000"></script>
 </body>
 </html>

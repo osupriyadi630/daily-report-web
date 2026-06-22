@@ -309,6 +309,7 @@ function bindControls() {
   document.getElementById("dashboardInactivePersonnelBody").addEventListener("click", handleDashboardPersonnelClick);
   document.getElementById("dashboardAddItemButton").addEventListener("click", openTaskModal);
   document.getElementById("dashboardOpenPortfolioButton").addEventListener("click", () => setView("jobs"));
+  document.getElementById("dashboardPortfolioSummary").addEventListener("click", handlePortfolioSummaryClick);
   document.getElementById("dashboardFeaturedJobs").addEventListener("click", handleDashboardPortfolioCardClick);
   document.getElementById("addPersonnelButton").addEventListener("click", () => openPersonnelForm());
   document.getElementById("closePersonnelDetailButton").addEventListener("click", closePersonnelDetail);
@@ -347,6 +348,7 @@ function bindControls() {
   document.getElementById("jobsNextPage").addEventListener("click", () => changeJobsPage(1));
   document.getElementById("jobsTableBody").addEventListener("click", handleJobsTableClick);
   document.getElementById("portfolioFeaturedJobs").addEventListener("click", handlePortfolioCardClick);
+  document.getElementById("portfolioSummary").addEventListener("click", handlePortfolioSummaryClick);
   document.getElementById("portfolioAddItemButton").addEventListener("click", () => openJobRecordForm());
   document.getElementById("closeJobDetailButton").addEventListener("click", closeJobDetail);
   document.getElementById("closeJobDetailFooter").addEventListener("click", closeJobDetail);
@@ -1757,6 +1759,9 @@ function jobMatchesStatusFilter(job, filter) {
   if (!filter || filter === "all") return true;
   const status = getNormalizedJobStatus(job);
   if (filter === "tender") return status.includes("tender");
+  if (filter === "completed") {
+    return status.includes("finish") || status.includes("selesai");
+  }
   if (filter === "finish-overtime") {
     return (status.includes("finish") || status.includes("selesai")) &&
       status.includes("overtime");
@@ -1774,19 +1779,19 @@ function jobMatchesStatusFilter(job, filter) {
       status.includes("active") ||
       status.includes("progress") ||
       status.includes("proses") ||
-      status.includes("berjalan");
+      status.includes("berjalan") ||
+      (job.records || []).some(isActiveWorkRecord);
   }
   return true;
 }
 
-function getFilteredJobs() {
+function getPortfolioScopeJobs() {
   const queryText = normalizeSearchText(state.jobsSearch);
   const queryTokens = getMeaningfulTokens(queryText);
-  let jobs = buildJobsFromAllSources().filter(job => {
+  return buildJobsFromAllSources().filter(job => {
     const matchesYear = state.jobsYear === "all" ||
       getJobYears(job).includes(Number(state.jobsYear));
     if (!matchesYear) return false;
-    if (!jobMatchesStatusFilter(job, state.jobsStatus)) return false;
     if (!queryTokens.length) return true;
     const haystack = normalizeSearchText([
       job.pekerjaan,
@@ -1797,10 +1802,25 @@ function getFilteredJobs() {
     ].join(" "));
     return queryTokens.every(token => haystack.includes(token));
   });
+}
+
+function getFilteredJobs() {
+  let jobs = getPortfolioScopeJobs()
+    .filter(job => jobMatchesStatusFilter(job, state.jobsStatus));
 
   jobs = jobs.sort((a, b) => a.pekerjaan.localeCompare(b.pekerjaan, "id"));
 
   return jobs;
+}
+
+function getPortfolioCounts(jobs) {
+  return {
+    total: jobs.length,
+    active: jobs.filter(job => getPortfolioStatusKey(job) === "active").length,
+    finish: jobs.filter(job => ["finish", "finish-overtime"].includes(getPortfolioStatusKey(job))).length,
+    tender: jobs.filter(job => getPortfolioStatusKey(job) === "tender").length,
+    upcoming: jobs.filter(job => getPortfolioStatusKey(job) === "upcoming").length
+  };
 }
 
 function getPortfolioStatusKey(job) {
@@ -1875,15 +1895,11 @@ function getPortfolioCardPriority(job) {
 }
 
 function renderPortfolioOverview(filteredJobs) {
-  const allJobs = buildJobsFromAllSources();
-  const counts = {
-    total: allJobs.length,
-    active: allJobs.filter(job => getPortfolioStatusKey(job) === "active").length,
-    finish: allJobs.filter(job => ["finish", "finish-overtime"].includes(getPortfolioStatusKey(job))).length,
-    tender: allJobs.filter(job => getPortfolioStatusKey(job) === "tender").length,
-    upcoming: allJobs.filter(job => getPortfolioStatusKey(job) === "upcoming").length
-  };
-  document.getElementById("portfolioYearLabel").textContent = `Portfolio tahun ${getCurrentSummaryYear()}`;
+  const scopeJobs = getPortfolioScopeJobs();
+  const counts = getPortfolioCounts(scopeJobs);
+  document.getElementById("portfolioYearLabel").textContent = state.jobsYear === "all"
+    ? "Seluruh portofolio"
+    : `Portofolio tahun ${state.jobsYear}`;
   document.getElementById("portfolioTotalCount").textContent = counts.total;
   document.getElementById("portfolioActiveCount").textContent = counts.active;
   document.getElementById("portfolioFinishCount").textContent = counts.finish;
@@ -1946,7 +1962,7 @@ function renderPortfolioOverview(filteredJobs) {
     ? `${briefParts.join(". ")}.`
     : "Portofolio tidak memiliki peringatan utama berdasarkan data yang tersedia.";
 
-  renderPortfolioActivity(allJobs);
+  renderPortfolioActivity(scopeJobs);
   renderPortfolioAgenda();
 }
 
@@ -2021,14 +2037,8 @@ function renderPortfolioAgenda() {
 
 function renderDashboardPortfolioHome() {
   const allJobs = buildJobsFromAllSources();
-  const counts = {
-    total: allJobs.length,
-    active: allJobs.filter(job => getPortfolioStatusKey(job) === "active").length,
-    finish: allJobs.filter(job => ["finish", "finish-overtime"].includes(getPortfolioStatusKey(job))).length,
-    tender: allJobs.filter(job => getPortfolioStatusKey(job) === "tender").length,
-    upcoming: allJobs.filter(job => getPortfolioStatusKey(job) === "upcoming").length
-  };
-  document.getElementById("dashboardPortfolioYearLabel").textContent = `Portfolio tahun ${getCurrentSummaryYear()}`;
+  const counts = getPortfolioCounts(allJobs);
+  document.getElementById("dashboardPortfolioYearLabel").textContent = "Seluruh portofolio";
   document.getElementById("dashboardPortfolioTotal").textContent = counts.total;
   document.getElementById("dashboardPortfolioActive").textContent = counts.active;
   document.getElementById("dashboardPortfolioFinish").textContent = counts.finish;
@@ -2109,6 +2119,36 @@ function handleDashboardPortfolioCardClick(event) {
   const card = event.target.closest("[data-dashboard-portfolio-job-index]");
   if (!card) return;
   openPortfolioJob(state.dashboardFeaturedJobs[Number(card.dataset.dashboardPortfolioJobIndex)]);
+}
+
+function handlePortfolioSummaryClick(event) {
+  const trigger = event.target.closest("[data-portfolio-summary-filter]");
+  if (!trigger) return;
+  const context = trigger.dataset.portfolioSummaryContext;
+  const filter = trigger.dataset.portfolioSummaryFilter || "all";
+
+  if (context === "dashboard") {
+    state.jobsSearch = "";
+    state.jobsYear = "all";
+  }
+  state.jobsStatus = filter;
+  state.jobsPage = 1;
+  setView("jobs");
+
+  const searchInput = document.getElementById("jobsSearch");
+  const yearFilter = document.getElementById("jobsYearFilter");
+  const statusFilter = document.getElementById("jobsStatusFilter");
+  if (searchInput) searchInput.value = state.jobsSearch;
+  if (yearFilter) yearFilter.value = state.jobsYear;
+  if (statusFilter) statusFilter.value = state.jobsStatus;
+  renderJobs();
+
+  window.requestAnimationFrame(() => {
+    document.querySelector(".portfolio-list-panel")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  });
 }
 
 function renderJobs() {
