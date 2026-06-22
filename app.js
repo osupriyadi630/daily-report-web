@@ -236,11 +236,12 @@ function bindControls() {
     state.jobsPage = 1;
     renderJobs();
   });
-  document.getElementById("refreshJobsButton").addEventListener("click", loadExternalSheetData);
+  document.getElementById("refreshJobsButton").addEventListener("click", refreshJobsData);
   document.getElementById("jobsToolsButton").addEventListener("click", toggleJobsToolsMenu);
   document.getElementById("addJobButton").addEventListener("click", addJobFromPrompt);
   document.getElementById("exportJobsPdfButton").addEventListener("click", exportJobsPdf);
   document.getElementById("exportJobsExcelButton").addEventListener("click", exportJobsExcel);
+  document.getElementById("exportJobsCsvButton").addEventListener("click", exportJobsCsv);
   document.getElementById("resetJobsFilters").addEventListener("click", resetJobsFilters);
   document.getElementById("jobsPrevPage").addEventListener("click", () => changeJobsPage(-1));
   document.getElementById("jobsNextPage").addEventListener("click", () => changeJobsPage(1));
@@ -670,6 +671,28 @@ function closeJobsMenus() {
   const button = document.getElementById("jobsToolsButton");
   if (menu) menu.classList.add("hidden");
   if (button) button.setAttribute("aria-expanded", "false");
+}
+
+async function refreshJobsData() {
+  const button = document.getElementById("refreshJobsButton");
+  if (!button || button.disabled) return;
+
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.classList.add("is-loading");
+  button.setAttribute("aria-busy", "true");
+  button.textContent = "Memuat...";
+
+  try {
+    await loadExternalSheetData();
+    button.textContent = "Diperbarui";
+    await new Promise(resolve => window.setTimeout(resolve, 700));
+  } finally {
+    button.disabled = false;
+    button.classList.remove("is-loading");
+    button.removeAttribute("aria-busy");
+    button.textContent = originalText;
+  }
 }
 
 function togglePersonnelRowMenu(button) {
@@ -1347,7 +1370,7 @@ function renderJobs() {
 
   if (syncText) {
     const statusText = sheet?.status === "ready"
-      ? `${sheet.records.length} baris DATA UTAMA tersinkron`
+      ? "DATA UTAMA tersinkron"
       : sheet?.status === "loading"
         ? "Memuat DATA UTAMA..."
         : sheet?.status === "error"
@@ -1430,7 +1453,7 @@ function openJobDetail(job) {
     <div class="job-detail-summary">
       <div><span>Tanggal Mulai</span><strong>${escapeHtml(job.tanggalMulai || "-")}</strong></div>
       <div><span>Tanggal Selesai</span><strong>${escapeHtml(job.tanggalSelesai || "-")}</strong></div>
-      <div><span>Jumlah Data</span><strong>${job.records.length}</strong></div>
+      <div><span>Jumlah Personil</span><strong>${job.records.length}</strong></div>
     </div>
     <div class="job-detail-table-wrap">
       <table class="personnel-table">
@@ -1551,6 +1574,7 @@ function buildJobsExportTable(data) {
 }
 
 function exportJobsExcel() {
+  closeJobsMenus();
   const data = getJobsExportData();
   if (!data) return;
   const html = `
@@ -1580,6 +1604,7 @@ function exportJobsExcel() {
 }
 
 function exportJobsPdf() {
+  closeJobsMenus();
   const data = getJobsExportData();
   if (!data) return;
   const win = window.open("", "_blank", "noopener,noreferrer,width=1200,height=800");
@@ -1613,6 +1638,26 @@ function exportJobsPdf() {
     </html>
   `);
   win.document.close();
+}
+
+function exportJobsCsv() {
+  closeJobsMenus();
+  const data = getJobsExportData();
+  if (!data) return;
+
+  const rows = data.records.map(record =>
+    data.columns.map(column => record[column] ?? "")
+  );
+  const csv = [data.columns, ...rows]
+    .map(row => row.map(csvCell).join(","))
+    .join("\n");
+  const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `daftar-pekerjaan-${state.today}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function getPersonnelSheet(sourceId = state.personnelSource) {
