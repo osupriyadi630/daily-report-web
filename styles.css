@@ -2010,6 +2010,313 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 .portfolio-guide-panel { border-left: 4px solid #0f766e; }
 .portfolio-list-panel { margin-bottom: 24px; }
 
+.portfolio-workspace-shell {
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: rgba(244, 247, 251, 0.96);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.portfolio-workspace-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.portfolio-workspace-header h2 {
+  margin: 5px 0 3px;
+  color: var(--ink);
+  font-size: 25px;
+}
+
+.portfolio-workspace-header p,
+.portfolio-card-title-row p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.portfolio-add-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 16px;
+}
+
+.portfolio-bento-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.portfolio-summary-card,
+.portfolio-activity-card,
+.portfolio-brief-panel,
+.portfolio-agenda-panel {
+  min-width: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.portfolio-summary-card {
+  padding: 18px;
+  border-color: #93c5fd;
+  background: #eaf2ff;
+}
+
+.portfolio-summary-card > span {
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.portfolio-total-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 8px 0 15px;
+}
+
+.portfolio-total-line > strong {
+  color: #0f172a;
+  font-size: 48px;
+  line-height: 0.95;
+}
+
+.portfolio-total-line > small {
+  padding-bottom: 5px;
+  color: var(--muted);
+}
+
+.portfolio-summary-card .portfolio-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.portfolio-summary-card .portfolio-metrics article {
+  display: flex;
+  min-height: 58px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #ffffff;
+  text-align: left;
+}
+
+.portfolio-summary-card .portfolio-metrics strong {
+  margin: 0;
+  color: #2563eb;
+  font-size: 20px;
+}
+
+.portfolio-summary-card .portfolio-metrics .active strong { color: #16a34a; }
+.portfolio-summary-card .portfolio-metrics .finish strong { color: #2563eb; }
+.portfolio-summary-card .portfolio-metrics .tender strong { color: #7c3aed; }
+.portfolio-summary-card .portfolio-metrics .upcoming strong { color: #ea580c; }
+.portfolio-summary-card .portfolio-metrics span { font-size: 10px; }
+.portfolio-summary-card .portfolio-sync-text { margin: 12px 0 0 !important; font-size: 10px; }
+
+.portfolio-activity-card {
+  padding: 18px;
+}
+
+.portfolio-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.portfolio-card-title-row h2,
+.portfolio-card-title-row h3 {
+  margin: 0 0 3px;
+}
+
+.portfolio-live-badge,
+.portfolio-agenda-count {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.portfolio-activity-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 15px;
+}
+
+.portfolio-activity-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.portfolio-activity-avatar {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border-radius: 50%;
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.portfolio-activity-avatar.green { background: #16a34a; }
+.portfolio-activity-avatar.blue { background: #2563eb; }
+.portfolio-activity-avatar.orange { background: #ea580c; }
+
+.portfolio-activity-item strong,
+.portfolio-activity-item small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.portfolio-activity-item strong { color: var(--ink); font-size: 11px; }
+.portfolio-activity-item small { margin-top: 2px; color: var(--muted); font-size: 9px; }
+
+.portfolio-workspace-shell .portfolio-featured-section { margin-bottom: 14px; }
+.portfolio-workspace-shell .portfolio-section-heading { margin-bottom: 10px; }
+.portfolio-workspace-shell .portfolio-section-heading h2 { margin: 0 0 2px; font-size: 16px; }
+.portfolio-workspace-shell .portfolio-section-heading p { font-size: 11px; }
+
+.portfolio-workspace-shell .portfolio-featured-grid { gap: 10px; }
+
+.portfolio-workspace-shell .portfolio-job-card {
+  min-height: 152px;
+  padding: 17px 14px 13px;
+  border-radius: 7px;
+  box-shadow: none;
+}
+
+.portfolio-workspace-shell .portfolio-card-heading strong {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.portfolio-workspace-shell .portfolio-status {
+  padding: 4px 9px;
+  border-radius: 12px;
+  font-size: 9px;
+  text-transform: none;
+}
+
+.portfolio-card-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.portfolio-card-team > small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.portfolio-workspace-shell .portfolio-progress-track {
+  height: 7px;
+  margin: auto 0 9px;
+}
+
+.portfolio-workspace-shell .portfolio-card-footer > b {
+  font-size: 20px;
+}
+
+.portfolio-workspace-shell .portfolio-card-footer > small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.portfolio-workspace-shell .portfolio-lower-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+
+.portfolio-workspace-shell .portfolio-brief-panel,
+.portfolio-agenda-panel {
+  min-height: 92px;
+  padding: 14px;
+}
+
+.portfolio-workspace-shell .portfolio-brief-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 11px;
+  border-left: 1px solid #cbd5e1;
+}
+
+.portfolio-workspace-shell .portfolio-brief-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+}
+
+.portfolio-workspace-shell .portfolio-lower-grid h2 {
+  margin: 0 0 3px;
+  font-size: 14px;
+}
+
+.portfolio-workspace-shell .portfolio-lower-grid p {
+  font-size: 10px;
+}
+
+.portfolio-agenda-count {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.portfolio-agenda-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.portfolio-agenda-item {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) minmax(90px, auto);
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.portfolio-agenda-item strong {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.portfolio-agenda-item small {
+  color: var(--muted);
+  text-align: right;
+}
+
+.portfolio-empty-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .jobs-panel {
   min-height: 520px;
   overflow: visible;
@@ -3034,6 +3341,7 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .job-record-form-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settings-grid { grid-template-columns: 1fr; }
   .portfolio-overview { grid-template-columns: 1fr; }
+  .portfolio-bento-top { grid-template-columns: 1fr; }
   .portfolio-featured-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .portfolio-featured-grid .portfolio-job-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
@@ -3116,6 +3424,13 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .jobs-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .jobs-panel { min-height: 0; }
   .portfolio-overview { gap: 16px; margin-bottom: 18px; padding: 18px; }
+  .portfolio-workspace-shell { padding: 13px; }
+  .portfolio-workspace-header { align-items: flex-start; }
+  .portfolio-add-button { width: auto; }
+  .portfolio-summary-card,
+  .portfolio-activity-card { padding: 14px; }
+  .portfolio-total-line > strong { font-size: 40px; }
+  .portfolio-summary-card .portfolio-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .portfolio-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .portfolio-metrics article { min-height: 92px; }
   .portfolio-featured-grid { grid-template-columns: 1fr; }
@@ -3123,6 +3438,9 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .portfolio-section-heading { align-items: flex-start; }
   .portfolio-job-card { min-height: 190px; padding: 18px; }
   .portfolio-lower-grid { grid-template-columns: 1fr; }
+  .portfolio-workspace-shell .portfolio-lower-grid { grid-template-columns: 1fr; }
+  .portfolio-agenda-item { grid-template-columns: 72px minmax(0, 1fr); }
+  .portfolio-agenda-item small { grid-column: 2; text-align: left; }
   .personnel-search { grid-column: 1 / -1; }
   .personnel-table-wrap { border: 0; overflow: visible; }
   .personnel-table { display: block; min-width: 0; background: transparent; }
