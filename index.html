@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260622231500">
+  <link rel="stylesheet" href="styles.css?v=20260622234500">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -537,6 +537,7 @@
               <div>
                 <h2>Monitoring Paket Tender</h2>
                 <p>Pantau kelengkapan dokumen jasa konsultansi per paket.</p>
+                <span class="tender-sync-status loading" id="tenderSyncStatus" aria-live="polite">Menghubungkan ke Firebase...</span>
               </div>
               <button class="primary-button" id="newTenderButton" type="button">+ Paket Tender</button>
             </div>
@@ -1043,8 +1044,9 @@
         </label>
       </div>
       <footer>
+        <span class="tender-form-status" id="tenderFormStatus" aria-live="polite"></span>
         <button class="secondary-button" id="cancelTenderFormButton" type="button">Batal</button>
-        <button class="primary-button" type="submit">Simpan Paket</button>
+        <button class="primary-button" id="saveTenderButton" type="submit">Simpan Paket</button>
       </footer>
     </form>
   </dialog>
@@ -1081,6 +1083,6 @@
   </dialog>
 
   <script src="firebase-config.js?v=20260622180000"></script>
-  <script type="module" src="app.js?v=20260622231500"></script>
+  <script type="module" src="app.js?v=20260622234500"></script>
 </body>
 </html>

@@ -3412,6 +3412,7 @@ function watchTasks() {
 }
 
 function watchTenders() {
+  setTenderSyncStatus("loading", "Menghubungkan ke Firebase...");
   unsubscribeTenders = onSnapshot(query(collection(db, TENDER_STORAGE_COLLECTION)), snapshot => {
     state.tenders = snapshot.docs
       .map(item => ({ id: item.id, ...item.data() }))
@@ -3426,12 +3427,21 @@ function watchTenders() {
     if (!state.selectedTenderId && state.tenders.length) {
       state.selectedTenderId = state.tenders[0].id;
     }
+    setTenderSyncStatus("ready", `Tersinkron realtime - ${state.tenders.length} paket`);
     renderTenders();
   }, error => {
     state.tenders = [];
+    setTenderSyncStatus("error", getTenderFirestoreErrorMessage(error, "Sinkronisasi Tender gagal."));
     renderTenders();
     console.error("Tender gagal disinkronkan:", error);
   });
+}
+
+function setTenderSyncStatus(status, message) {
+  const element = document.getElementById("tenderSyncStatus");
+  if (!element) return;
+  element.className = `tender-sync-status ${status}`;
+  element.textContent = message;
 }
 
 function createTenderChecklist(existing = []) {
@@ -3544,6 +3554,7 @@ function handleTenderTableClick(event) {
 function openTenderForm(tender = null) {
   if (!requirePermission(canManageTenders(), "Role Anda tidak dapat mengubah paket tender.")) return;
   document.getElementById("tenderForm").reset();
+  setTenderFormStatus("");
   document.getElementById("tenderId").value = tender?.id || "";
   document.getElementById("tenderFormTitle").textContent = tender ? "Edit Paket Tender" : "Paket Tender Baru";
   document.getElementById("tenderName").value = tender?.name || "";
@@ -3596,6 +3607,10 @@ async function saveTender(event) {
     updatedAt: serverTimestamp()
   };
 
+  const saveButton = document.getElementById("saveTenderButton");
+  saveButton.disabled = true;
+  saveButton.textContent = "Menyimpan...";
+  setTenderFormStatus("Menyimpan paket ke Firebase...", "loading");
   try {
     const reference = tenderId
       ? doc(db, TENDER_STORAGE_COLLECTION, tenderId)
@@ -3607,10 +3622,25 @@ async function saveTender(event) {
       createdAt: existing?.createdAt || serverTimestamp()
     }, { merge: true });
     state.selectedTenderId = reference.id;
+    setTenderFormStatus("Paket berhasil disimpan.", "success");
+    setTenderSyncStatus("ready", "Paket berhasil disimpan dan sedang disinkronkan...");
+    await new Promise(resolve => window.setTimeout(resolve, 450));
     closeTenderForm();
   } catch (error) {
-    alert(getTenderFirestoreErrorMessage(error, "Paket tender gagal disimpan."));
+    const message = getTenderFirestoreErrorMessage(error, "Paket tender gagal disimpan.");
+    setTenderFormStatus(message, "error");
+    alert(message);
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = "Simpan Paket";
   }
+}
+
+function setTenderFormStatus(message, status = "") {
+  const element = document.getElementById("tenderFormStatus");
+  if (!element) return;
+  element.className = `tender-form-status ${status}`.trim();
+  element.textContent = message;
 }
 
 function editSelectedTender() {

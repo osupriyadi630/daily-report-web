@@ -943,6 +943,35 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 12px;
 }
 
+.tender-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tender-sync-status::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  content: "";
+}
+
+.tender-sync-status.loading { color: #475569; }
+.tender-sync-status.loading::before { background: #f59e0b; }
+.tender-sync-status.ready { color: #15803d; }
+.tender-sync-status.ready::before { background: #22c55e; }
+.tender-sync-status.error {
+  display: block;
+  max-width: 620px;
+  color: #b91c1c;
+  white-space: pre-line;
+}
+.tender-sync-status.error::before { display: inline-block; margin-right: 6px; background: #ef4444; }
+
 .tender-table-wrap {
   max-height: calc(100dvh - 330px);
 }
@@ -1242,6 +1271,18 @@ input:focus, select:focus, textarea:focus {
   border-top: 1px solid var(--line);
   background: #ffffff;
 }
+
+.tender-form-status {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: pre-line;
+}
+
+.tender-form-status.loading { color: #475569; }
+.tender-form-status.success { color: #15803d; }
+.tender-form-status.error { color: #b91c1c; }
 
 .tender-form-grid .full {
   grid-column: 1 / -1;
