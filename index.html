@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260622170000">
+  <link rel="stylesheet" href="styles.css?v=20260622180000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -258,10 +258,18 @@
               <input id="jobsSearch" type="search" placeholder="Cari nama pekerjaan, tanggal, atau detail lain...">
             </label>
             <label>
+              <span>Tahun</span>
+              <select id="jobsYearFilter">
+                <option value="all">Semua Tahun</option>
+              </select>
+            </label>
+            <label>
               <span>Urutkan</span>
               <select id="jobsSort">
                 <option value="name-asc">Pekerjaan A-Z</option>
                 <option value="name-desc">Pekerjaan Z-A</option>
+                <option value="year-desc">Tahun terbaru</option>
+                <option value="year-asc">Tahun terlama</option>
                 <option value="start-asc">Tanggal mulai awal</option>
                 <option value="finish-desc">Tanggal selesai akhir</option>
               </select>
@@ -287,6 +295,7 @@
               <thead>
                 <tr>
                   <th>Pekerjaan</th>
+                  <th>Tahun</th>
                   <th>Tanggal Mulai</th>
                   <th>Tanggal Selesai</th>
                   <th>Jumlah Personil</th>
@@ -345,6 +354,12 @@
             <label class="personnel-search">
               <span>Cari data</span>
               <input id="personnelSearch" type="search" placeholder="Cari nama, jabatan, status, atau data lain...">
+            </label>
+            <label>
+              <span>Tahun</span>
+              <select id="personnelYearFilter">
+                <option value="all">Semua Tahun</option>
+              </select>
             </label>
             <label>
               <span>Pekerjaan</span>
@@ -792,7 +807,7 @@
     </section>
   </dialog>
 
-  <script src="firebase-config.js?v=20260622170000"></script>
-  <script type="module" src="app.js?v=20260622170000"></script>
+  <script src="firebase-config.js?v=20260622180000"></script>
+  <script type="module" src="app.js?v=20260622180000"></script>
 </body>
 </html>

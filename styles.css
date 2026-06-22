@@ -1250,7 +1250,7 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 .jobs-action-dropdown .action-dropdown-menu { z-index: 100; }
 
 .jobs-tools {
-  grid-template-columns: minmax(260px, 1fr) 220px 160px;
+  grid-template-columns: minmax(260px, 1fr) 150px 220px 160px;
 }
 
 .jobs-table .clickable-row {
@@ -1431,7 +1431,7 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 
 .personnel-tools {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(140px, auto));
+  grid-template-columns: minmax(260px, 1fr) repeat(4, minmax(140px, auto));
   gap: 12px;
   margin: 18px 0 12px;
 }

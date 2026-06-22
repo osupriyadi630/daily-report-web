@@ -154,11 +154,13 @@ let state = {
   selectedRecipientEmail: "",
   personnelSource: "personil-bmc",
   personnelSearch: "",
+  personnelYear: "all",
   personnelWorkFilter: "all",
   personnelSort: "name-asc",
   personnelPage: 1,
   personnelPageSize: 25,
   jobsSearch: "",
+  jobsYear: "all",
   jobsSort: "name-asc",
   jobsPage: 1,
   jobsPageSize: 25,
@@ -226,6 +228,11 @@ function bindControls() {
     state.personnelPage = 1;
     renderPersonnel();
   });
+  document.getElementById("personnelYearFilter").addEventListener("change", event => {
+    state.personnelYear = event.target.value;
+    state.personnelPage = 1;
+    renderPersonnel();
+  });
   document.getElementById("personnelWorkFilter").addEventListener("change", event => {
     state.personnelWorkFilter = event.target.value;
     state.personnelPage = 1;
@@ -258,6 +265,11 @@ function bindControls() {
   document.getElementById("cancelPersonnelFormButton").addEventListener("click", closePersonnelForm);
   document.getElementById("jobsSearch").addEventListener("input", event => {
     state.jobsSearch = event.target.value;
+    state.jobsPage = 1;
+    renderJobs();
+  });
+  document.getElementById("jobsYearFilter").addEventListener("change", event => {
+    state.jobsYear = event.target.value;
     state.jobsPage = 1;
     renderJobs();
   });
@@ -1517,6 +1529,60 @@ function getComparableDate(value) {
   return 0;
 }
 
+function getYearFromDateValue(value) {
+  const timestamp = getComparableDate(value);
+  if (timestamp) return new Date(timestamp).getFullYear();
+  const match = String(value || "").match(/\b(19|20)\d{2}\b/);
+  return match ? Number(match[0]) : 0;
+}
+
+function getJobYears(job) {
+  const explicitYears = (job?.records || [])
+    .map(record => Number(getRecordValue(record, ["tahun", "year"])))
+    .filter(year => year >= 1900 && year <= 2200);
+  const startYear = getYearFromDateValue(job?.tanggalMulai);
+  const finishYear = getYearFromDateValue(job?.tanggalSelesai);
+  const years = new Set(explicitYears);
+
+  if (startYear && finishYear && finishYear >= startYear && finishYear - startYear <= 20) {
+    for (let year = startYear; year <= finishYear; year += 1) years.add(year);
+  } else {
+    if (startYear) years.add(startYear);
+    if (finishYear) years.add(finishYear);
+  }
+  return [...years].sort((a, b) => a - b);
+}
+
+function getJobYearLabel(job) {
+  const years = getJobYears(job);
+  if (!years.length) return "-";
+  if (years.length === 1) return String(years[0]);
+  return `${years[0]}-${years[years.length - 1]}`;
+}
+
+function getAvailableJobYears() {
+  return [...new Set(buildJobsFromDataUtama().flatMap(getJobYears))]
+    .sort((a, b) => b - a);
+}
+
+function renderYearFilterOptions() {
+  const years = getAvailableJobYears();
+  [
+    ["jobsYearFilter", "jobsYear"],
+    ["personnelYearFilter", "personnelYear"]
+  ].forEach(([elementId, stateKey]) => {
+    const select = document.getElementById(elementId);
+    if (!select || document.activeElement === select) return;
+    const selected = String(state[stateKey] || "all");
+    select.innerHTML = [
+      '<option value="all">Semua Tahun</option>',
+      ...years.map(year => `<option value="${year}">${year}</option>`)
+    ].join("");
+    select.value = years.includes(Number(selected)) ? selected : "all";
+    state[stateKey] = select.value;
+  });
+}
+
 function buildJobsFromDataUtama() {
   const sheet = getDataUtamaSheet();
   if (!sheet || sheet.status !== "ready") return [];
@@ -1555,6 +1621,9 @@ function getFilteredJobs() {
   const queryText = normalizeSearchText(state.jobsSearch);
   const queryTokens = getMeaningfulTokens(queryText);
   let jobs = buildJobsFromDataUtama().filter(job => {
+    const matchesYear = state.jobsYear === "all" ||
+      getJobYears(job).includes(Number(state.jobsYear));
+    if (!matchesYear) return false;
     if (!queryTokens.length) return true;
     const haystack = normalizeSearchText([
       job.pekerjaan,
@@ -1569,6 +1638,12 @@ function getFilteredJobs() {
   jobs = jobs.sort((a, b) => {
     if (state.jobsSort === "name-desc") {
       return b.pekerjaan.localeCompare(a.pekerjaan);
+    }
+    if (state.jobsSort === "year-desc") {
+      return Math.max(...getJobYears(b), 0) - Math.max(...getJobYears(a), 0);
+    }
+    if (state.jobsSort === "year-asc") {
+      return Math.min(...getJobYears(a), 9999) - Math.min(...getJobYears(b), 9999);
     }
     if (state.jobsSort === "start-asc") {
       return getComparableDate(a.tanggalMulai) - getComparableDate(b.tanggalMulai);
@@ -1588,6 +1663,7 @@ function renderJobs() {
   const tableBody = document.getElementById("jobsTableBody");
   const resultCount = document.getElementById("jobsResultCount");
   if (!tableBody) return;
+  renderYearFilterOptions();
 
   if (syncText) {
     const statusText = sheet?.status === "ready"
@@ -1610,11 +1686,12 @@ function renderJobs() {
 
   if (resultCount) resultCount.textContent = `${jobs.length} pekerjaan ditemukan`;
   if (!visible.length) {
-    tableBody.innerHTML = '<tr><td class="personnel-empty" colspan="5">Tidak ada pekerjaan yang cocok.</td></tr>';
+    tableBody.innerHTML = '<tr><td class="personnel-empty" colspan="6">Tidak ada pekerjaan yang cocok.</td></tr>';
   } else {
     tableBody.innerHTML = visible.map((job, index) => `
       <tr class="clickable-row" data-job-index="${startIndex + index}" tabindex="0">
         <td data-label="Pekerjaan"><strong>${escapeHtml(job.pekerjaan)}</strong></td>
+        <td data-label="Tahun">${escapeHtml(getJobYearLabel(job))}</td>
         <td data-label="Tanggal Mulai">${escapeHtml(job.tanggalMulai || "-")}</td>
         <td data-label="Tanggal Selesai">${escapeHtml(job.tanggalSelesai || "-")}</td>
         <td data-label="Jumlah Personil">${job.records.length}</td>
@@ -1637,10 +1714,12 @@ function setJobsPaginationButtons(pageCount) {
 
 function resetJobsFilters() {
   state.jobsSearch = "";
+  state.jobsYear = "all";
   state.jobsSort = "name-asc";
   state.jobsPage = 1;
   state.jobsPageSize = 25;
   document.getElementById("jobsSearch").value = "";
+  document.getElementById("jobsYearFilter").value = "all";
   document.getElementById("jobsSort").value = state.jobsSort;
   document.getElementById("jobsPageSize").value = "25";
   renderJobs();
@@ -2008,9 +2087,10 @@ function getJobsExportData() {
   }
   return {
     title: "Daftar Pekerjaan",
-    columns: ["Pekerjaan", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Personil", "Status Pekerjaan"],
+    columns: ["Pekerjaan", "Tahun", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Personil", "Status Pekerjaan"],
     records: jobs.map(job => ({
       Pekerjaan: job.pekerjaan,
+      Tahun: getJobYearLabel(job),
       "Tanggal Mulai": job.tanggalMulai || "-",
       "Tanggal Selesai": job.tanggalSelesai || "-",
       "Jumlah Personil": job.records.length,
@@ -2122,6 +2202,128 @@ function getPersonnelName(record) {
   return String(record?.[nameKey] || "Tanpa nama").trim();
 }
 
+function canonicalPersonnelName(value) {
+  const beforeDegree = String(value || "").split(",")[0];
+  const degreeTokens = new Set([
+    "ir", "dr", "dra", "h", "s", "t", "st", "mt", "mm", "msc", "meng",
+    "sh", "se", "si", "amd", "ars", "ipm"
+  ]);
+  const tokens = normalizeSearchText(beforeDegree).split(" ").filter(Boolean);
+  while (tokens.length > 1 && degreeTokens.has(tokens[tokens.length - 1])) tokens.pop();
+  return tokens.join(" ");
+}
+
+function isSamePersonnelName(left, right) {
+  const leftName = canonicalPersonnelName(left);
+  const rightName = canonicalPersonnelName(right);
+  if (!leftName || !rightName) return false;
+  return leftName === rightName ||
+    (leftName.length >= 6 && rightName.length >= 6 &&
+      (leftName.includes(rightName) || rightName.includes(leftName)));
+}
+
+function isFinishedWorkStatus(value) {
+  return includesAny(normalizeSearchText(value), [
+    "finish", "finished", "selesai", "completed", "complete", "done"
+  ]);
+}
+
+function isActiveWorkRecord(record) {
+  const status = getRecordValue(record, ["status pekerjaan", "status project", "status proyek"]);
+  const normalizedStatus = normalizeSearchText(status);
+  if (isFinishedWorkStatus(status)) return false;
+  if (includesAny(normalizedStatus, [
+    "aktif", "active", "proses", "progress", "ongoing", "berjalan", "overtime"
+  ])) return true;
+  if (includesAny(normalizedStatus, ["upcoming", "rencana", "pending", "tertunda"])) return false;
+
+  const start = getComparableDate(getRecordValue(record, ["tanggal mulai", "tgl mulai", "mulai"]));
+  const finish = getComparableDate(getRecordValue(record, ["tanggal selesai", "tgl selesai", "selesai"]));
+  const today = getComparableDate(state.today);
+  return Boolean(start && start <= today && (!finish || finish >= today));
+}
+
+function isFinishedWorkRecord(record) {
+  const status = getRecordValue(record, ["status pekerjaan", "status project", "status proyek"]);
+  if (isFinishedWorkStatus(status)) return true;
+  if (status) return false;
+  const finish = getComparableDate(getRecordValue(record, ["tanggal selesai", "tgl selesai", "selesai"]));
+  return Boolean(finish && finish < getComparableDate(state.today));
+}
+
+function getRecordYears(record) {
+  const explicitYear = Number(getRecordValue(record, ["tahun", "year"]));
+  const startYear = getYearFromDateValue(getRecordValue(record, ["tanggal mulai", "tgl mulai", "mulai"]));
+  const finishYear = getYearFromDateValue(getRecordValue(record, ["tanggal selesai", "tgl selesai", "selesai"]));
+  const years = new Set();
+  if (explicitYear >= 1900 && explicitYear <= 2200) years.add(explicitYear);
+  if (startYear && finishYear && finishYear >= startYear && finishYear - startYear <= 20) {
+    for (let year = startYear; year <= finishYear; year += 1) years.add(year);
+  } else {
+    if (startYear) years.add(startYear);
+    if (finishYear) years.add(finishYear);
+  }
+  return [...years];
+}
+
+function recordMatchesPersonnelYear(record, selectedYear, finished) {
+  if (selectedYear === "all") return true;
+  const year = Number(selectedYear);
+  if (finished) {
+    const finishYear = getYearFromDateValue(
+      getRecordValue(record, ["tanggal selesai", "tgl selesai", "selesai"])
+    );
+    if (finishYear) return finishYear === year;
+  }
+  return getRecordYears(record).includes(year);
+}
+
+function getPersonnelWorkMetrics(personnelName, selectedYear = state.personnelYear) {
+  const dataSheet = getDataUtamaSheet();
+  const assignments = dataSheet?.status === "ready" ? dataSheet.records : [];
+  let active = 0;
+  let finished = 0;
+
+  assignments.forEach(record => {
+    const assignmentName = getRecordValue(record, ["nama personil", "nama lengkap", "nama"]);
+    if (!isSamePersonnelName(personnelName, assignmentName)) return;
+    const involvement = getRecordValue(record, ["keterlibatan"]);
+    if (normalizeSearchText(involvement) !== "ya") return;
+
+    if (isFinishedWorkRecord(record) && recordMatchesPersonnelYear(record, selectedYear, true)) {
+      finished += 1;
+    } else if (isActiveWorkRecord(record) && recordMatchesPersonnelYear(record, selectedYear, false)) {
+      active += 1;
+    }
+  });
+
+  return { active, finished, total: active + finished };
+}
+
+function setComputedPersonnelValue(record, canonicalColumn, aliases, value) {
+  const existingColumn = Object.keys(record).find(column =>
+    aliases.includes(normalizeSearchText(column))
+  );
+  record[existingColumn || canonicalColumn] = value;
+}
+
+function getIntegratedPersonnelRecords(records) {
+  return (records || []).map(record => {
+    const integrated = { ...record };
+    const metrics = getPersonnelWorkMetrics(getPersonnelName(record));
+    setComputedPersonnelValue(integrated, "TAHUN", ["tahun"], state.personnelYear === "all" ? "Semua Tahun" : state.personnelYear);
+    setComputedPersonnelValue(integrated, "PEKERJAAN AKTIF", ["pekerjaan aktif", "tugas aktif", "project aktif"], metrics.active);
+    setComputedPersonnelValue(
+      integrated,
+      "KETERLIBATAN PEKERJAAN STATUS SELESAI",
+      ["keterlibatan pekerjaan status selesai", "keterlibatan pekerjaan", "status selesai"],
+      metrics.finished
+    );
+    setComputedPersonnelValue(integrated, "AKUMULASI", ["akumulasi"], metrics.total);
+    return integrated;
+  });
+}
+
 function getPersonnelActiveWork(record) {
   const workKey = Object.keys(record || {}).find(key =>
     includesAny(normalizeSearchText(key), ["pekerjaan aktif", "tugas aktif", "project aktif"])
@@ -2137,7 +2339,7 @@ function getFilteredPersonnelRecords() {
 
   const queryText = normalizeSearchText(state.personnelSearch);
   const queryTokens = getMeaningfulTokens(queryText);
-  const records = sheet.records.filter(record => {
+  const records = getIntegratedPersonnelRecords(sheet.records).filter(record => {
     const searchable = normalizeSearchText(objectSearchText(record));
     const matchesSearch = !queryText ||
       searchable.includes(queryText) ||
@@ -2167,6 +2369,7 @@ function renderPersonnel() {
   const tableHead = document.getElementById("personnelTableHead");
   const tableBody = document.getElementById("personnelTableBody");
   if (!tableHead || !tableBody) return;
+  renderYearFilterOptions();
 
   document.querySelectorAll("[data-personnel-source]").forEach(button => {
     button.classList.toggle("active", button.dataset.personnelSource === state.personnelSource);
@@ -2196,16 +2399,17 @@ function renderPersonnel() {
     return;
   }
 
+  const integratedRecords = getIntegratedPersonnelRecords(sheet.records);
   const filteredRecords = getFilteredPersonnelRecords();
   const pageCount = Math.max(1, Math.ceil(filteredRecords.length / state.personnelPageSize));
   state.personnelPage = Math.min(Math.max(1, state.personnelPage), pageCount);
   const pageStart = (state.personnelPage - 1) * state.personnelPageSize;
   const pageRecords = filteredRecords.slice(pageStart, pageStart + state.personnelPageSize);
-  const columns = getPersonnelColumns(sheet.records);
+  const columns = getPersonnelColumns(integratedRecords);
   state.personnelVisibleRecords = pageRecords;
 
   document.getElementById("personnelSyncText").textContent =
-    `${sheet.records.length} data tersinkron · diperbarui ${formatSyncTime(externalSheetLastLoadedAt)}`;
+    `${sheet.records.length} data tersinkron · kategori ${state.personnelYear === "all" ? "semua tahun" : state.personnelYear} · diperbarui ${formatSyncTime(externalSheetLastLoadedAt)}`;
   document.getElementById("personnelResultCount").textContent =
     `${filteredRecords.length} data ditemukan`;
   document.getElementById("personnelPageInfo").textContent =
@@ -2251,9 +2455,10 @@ function getPersonnelColumns(records) {
 
 function updatePersonnelSourceSummary(countId, activeId, sheet) {
   const records = sheet?.status === "ready" ? sheet.records : [];
+  const integratedRecords = getIntegratedPersonnelRecords(records);
   document.getElementById(countId).textContent = records.length;
   document.getElementById(activeId).textContent =
-    `${records.filter(record => getPersonnelActiveWork(record) > 0).length} memiliki pekerjaan aktif`;
+    `${integratedRecords.filter(record => getPersonnelActiveWork(record) > 0).length} memiliki pekerjaan aktif`;
 }
 
 function selectPersonnelSource(sourceId) {
@@ -2264,10 +2469,12 @@ function selectPersonnelSource(sourceId) {
 
 function resetPersonnelFilters() {
   state.personnelSearch = "";
+  state.personnelYear = "all";
   state.personnelWorkFilter = "all";
   state.personnelSort = "name-asc";
   state.personnelPage = 1;
   document.getElementById("personnelSearch").value = "";
+  document.getElementById("personnelYearFilter").value = "all";
   document.getElementById("personnelWorkFilter").value = "all";
   document.getElementById("personnelSort").value = "name-asc";
   renderPersonnel();
@@ -2312,7 +2519,7 @@ function openPersonnelDetail(record) {
     .map(([key, value]) => `
       <div class="personnel-detail-row">
         <span>${escapeHtml(humanizeFieldName(key))}</span>
-        <strong>${escapeHtml(value || "-")}</strong>
+        <strong>${escapeHtml(getRecordDisplayValue(record, key))}</strong>
       </div>
     `).join("");
   document.getElementById("personnelDetailModal").showModal();
@@ -2324,6 +2531,7 @@ function closePersonnelDetail() {
 
 function isComputedPersonnelColumn(column) {
   return includesAny(normalizeSearchText(column), [
+    "tahun",
     "pekerjaan aktif",
     "tugas aktif",
     "project aktif",
