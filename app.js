@@ -43,6 +43,7 @@ let welcomeTimer = null;
 let aiContextTaskId = null;
 let externalSheetTimer = null;
 let externalSheetLastLoadedAt = 0;
+let currentJobDetail = null;
 
 const EXTERNAL_SHEET_SOURCES = [
   {
@@ -248,6 +249,8 @@ function bindControls() {
   document.getElementById("jobsTableBody").addEventListener("click", handleJobsTableClick);
   document.getElementById("closeJobDetailButton").addEventListener("click", closeJobDetail);
   document.getElementById("closeJobDetailFooter").addEventListener("click", closeJobDetail);
+  document.getElementById("exportJobDetailPdfButton").addEventListener("click", exportCurrentJobDetailPdf);
+  document.getElementById("exportJobDetailExcelButton").addEventListener("click", exportCurrentJobDetailExcel);
   document.getElementById("taskDate").addEventListener("input", event => closeDatePicker(event.target));
   document.getElementById("taskDate").addEventListener("change", event => closeDatePicker(event.target));
   document.getElementById("taskDeadline").addEventListener("input", event => closeDatePicker(event.target));
@@ -1459,6 +1462,7 @@ function openJobDetail(job) {
   const source = document.getElementById("jobDetailSource");
   const body = document.getElementById("jobDetailBody");
   if (!modal || !body) return;
+  currentJobDetail = job;
 
   if (title) title.textContent = job.pekerjaan;
   if (source) {
@@ -1498,6 +1502,115 @@ function openJobDetail(job) {
 function closeJobDetail() {
   const modal = document.getElementById("jobDetailModal");
   if (modal?.open) modal.close();
+}
+
+function getCurrentJobDetailExportData() {
+  if (!currentJobDetail) {
+    alert("Rincian pekerjaan belum dipilih.");
+    return null;
+  }
+
+  return {
+    title: currentJobDetail.pekerjaan,
+    columns: getJobDetailColumns(currentJobDetail.records),
+    records: currentJobDetail.records,
+    tanggalMulai: currentJobDetail.tanggalMulai || "-",
+    tanggalSelesai: currentJobDetail.tanggalSelesai || "-"
+  };
+}
+
+function buildJobDetailExportTable(data) {
+  return `
+    <table>
+      <thead>
+        <tr>${data.columns.map(column => `<th>${escapeHtml(humanizeFieldName(column))}</th>`).join("")}</tr>
+      </thead>
+      <tbody>
+        ${data.records.map(record => `
+          <tr>${data.columns.map(column => `<td>${escapeHtml(record[column] || "-")}</td>`).join("")}</tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function getExportFileName(value) {
+  return String(value || "pekerjaan")
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+}
+
+function exportCurrentJobDetailExcel() {
+  const data = getCurrentJobDetailExportData();
+  if (!data) return;
+
+  const html = `
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; color: #111827; }
+          h1 { margin: 0 0 6px; font-size: 18px; }
+          p { margin: 0 0 14px; color: #64748b; }
+          table { border-collapse: collapse; width: 100%; font-size: 10px; }
+          th { background: #3b82e6; color: #ffffff; font-weight: 700; text-align: center; }
+          th, td { border: 1px solid #cbd5e1; padding: 7px; vertical-align: top; }
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(data.title)}</h1>
+        <p>Tanggal ${escapeHtml(data.tanggalMulai)} sampai ${escapeHtml(data.tanggalSelesai)} - ${data.records.length} personil</p>
+        ${buildJobDetailExportTable(data)}
+      </body>
+    </html>
+  `;
+  const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `rincian-${getExportFileName(data.title)}-${state.today}.xls`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCurrentJobDetailPdf() {
+  const data = getCurrentJobDetailExportData();
+  if (!data) return;
+
+  const win = window.open("", "_blank", "noopener,noreferrer,width=1400,height=900");
+  if (!win) return alert("Popup browser diblokir. Izinkan popup untuk export PDF.");
+  win.document.write(`
+    <html>
+      <head>
+        <title>${escapeHtml(data.title)}</title>
+        <style>
+          @page { size: A3 landscape; margin: 9mm; }
+          body { font-family: Arial, sans-serif; color: #111827; }
+          h1 { margin: 0 0 5px; font-size: 18px; }
+          p { margin: 0 0 12px; color: #64748b; font-size: 10px; }
+          table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 7px; }
+          th { background: #3b82e6; color: #ffffff; font-weight: 700; text-align: center; }
+          th, td { border: 1px solid #94a3b8; padding: 4px; vertical-align: top; overflow-wrap: anywhere; }
+          tr { break-inside: avoid; }
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(data.title)}</h1>
+        <p>Tanggal ${escapeHtml(data.tanggalMulai)} sampai ${escapeHtml(data.tanggalSelesai)} - ${data.records.length} personil</p>
+        ${buildJobDetailExportTable(data)}
+        <script>
+          window.onload = () => {
+            window.focus();
+            window.print();
+          };
+        <\/script>
+      </body>
+    </html>
+  `);
+  win.document.close();
 }
 
 async function addJobFromPrompt() {

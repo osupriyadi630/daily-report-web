@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260622120000">
+  <link rel="stylesheet" href="styles.css?v=20260622130000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -594,7 +594,11 @@
       </header>
       <div id="jobDetailBody" class="job-detail-body"></div>
       <footer>
-        <button type="button" class="secondary-button" id="closeJobDetailFooter">Tutup</button>
+        <div class="job-detail-export-actions">
+          <button type="button" class="secondary-button" id="exportJobDetailPdfButton">Export PDF</button>
+          <button type="button" class="secondary-button" id="exportJobDetailExcelButton">Export Excel</button>
+        </div>
+        <button type="button" class="primary-button" id="closeJobDetailFooter">Tutup</button>
       </footer>
     </section>
   </dialog>
@@ -735,7 +739,7 @@
     </section>
   </dialog>
 
-  <script src="firebase-config.js?v=20260622120000"></script>
-  <script type="module" src="app.js?v=20260622120000"></script>
+  <script src="firebase-config.js?v=20260622130000"></script>
+  <script type="module" src="app.js?v=20260622130000"></script>
 </body>
 </html>
