@@ -1746,6 +1746,26 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
   grid-template-columns: minmax(260px, 1fr) 150px 220px 160px;
 }
 
+.jobs-panel .personnel-table-wrap {
+  max-height: min(620px, calc(100dvh - 350px));
+  padding-bottom: 0;
+}
+
+.jobs-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: #eaf0f7;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.jobs-table th:first-child,
+.jobs-table td:first-child {
+  width: 58px;
+  min-width: 58px;
+  text-align: center;
+}
+
 .jobs-table .clickable-row {
   cursor: pointer;
   transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;

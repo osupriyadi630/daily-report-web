@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260623003000">
+  <link rel="stylesheet" href="styles.css?v=20260623101500">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -337,14 +337,14 @@
               </select>
             </label>
             <label>
-              <span>Urutkan</span>
-              <select id="jobsSort">
-                <option value="name-asc">Pekerjaan A-Z</option>
-                <option value="name-desc">Pekerjaan Z-A</option>
-                <option value="year-desc">Tahun terbaru</option>
-                <option value="year-asc">Tahun terlama</option>
-                <option value="start-asc">Tanggal mulai awal</option>
-                <option value="finish-desc">Tanggal selesai akhir</option>
+              <span>Status Pekerjaan</span>
+              <select id="jobsStatusFilter">
+                <option value="all">Semua Status</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="finish">Finish</option>
+                <option value="finish-overtime">Finish Overtime</option>
+                <option value="tender">Tender</option>
               </select>
             </label>
             <label>
@@ -367,6 +367,7 @@
             <table class="jobs-table personnel-table">
               <thead>
                 <tr>
+                  <th>No.</th>
                   <th>Pekerjaan</th>
                   <th>Tahun</th>
                   <th>Tanggal Mulai</th>
@@ -1104,6 +1105,6 @@
   </dialog>
 
   <script src="firebase-config.js?v=20260622180000"></script>
-  <script type="module" src="app.js?v=20260623003000"></script>
+  <script type="module" src="app.js?v=20260623101500"></script>
 </body>
 </html>

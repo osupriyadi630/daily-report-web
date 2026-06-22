@@ -47,6 +47,8 @@ let externalSheetTimer = null;
 let externalSheetLastLoadedAt = 0;
 let currentJobDetail = null;
 let jobDetailResizeObserver = null;
+let tenderJobSyncInProgress = false;
+let lastTenderJobSignature = "";
 
 const DEFAULT_EXTERNAL_SHEET_SOURCES = [
   {
@@ -200,7 +202,7 @@ let state = {
   personnelPageSize: 25,
   jobsSearch: "",
   jobsYear: "all",
-  jobsSort: "name-asc",
+  jobsStatus: "all",
   jobsPage: 1,
   jobsPageSize: 25,
   jobsVisibleRecords: [],
@@ -319,8 +321,8 @@ function bindControls() {
     state.jobsPage = 1;
     renderJobs();
   });
-  document.getElementById("jobsSort").addEventListener("change", event => {
-    state.jobsSort = event.target.value;
+  document.getElementById("jobsStatusFilter").addEventListener("change", event => {
+    state.jobsStatus = event.target.value;
     state.jobsPage = 1;
     renderJobs();
   });
@@ -1427,6 +1429,7 @@ async function loadExternalSheetData() {
 
   state.externalSheets = results;
   externalSheetLastLoadedAt = Date.now();
+  await syncTenderJobsFromDataUtama();
   renderExternalSheetStatus();
   renderPersonnel();
   renderJobs();
@@ -1707,6 +1710,36 @@ function getJobStatus(job) {
   return statuses.length ? statuses.join(", ") : "-";
 }
 
+function getNormalizedJobStatus(job) {
+  return normalizeSearchText(getJobStatus(job));
+}
+
+function jobMatchesStatusFilter(job, filter) {
+  if (!filter || filter === "all") return true;
+  const status = getNormalizedJobStatus(job);
+  if (filter === "tender") return status.includes("tender");
+  if (filter === "finish-overtime") {
+    return (status.includes("finish") || status.includes("selesai")) &&
+      status.includes("overtime");
+  }
+  if (filter === "finish") {
+    return (status.includes("finish") || status.includes("selesai")) &&
+      !status.includes("overtime");
+  }
+  if (filter === "upcoming") {
+    return status.includes("upcoming") || status.includes("rencana");
+  }
+  if (filter === "ongoing") {
+    return status.includes("ongoing") ||
+      status.includes("aktif") ||
+      status.includes("active") ||
+      status.includes("progress") ||
+      status.includes("proses") ||
+      status.includes("berjalan");
+  }
+  return true;
+}
+
 function getFilteredJobs() {
   const queryText = normalizeSearchText(state.jobsSearch);
   const queryTokens = getMeaningfulTokens(queryText);
@@ -1714,6 +1747,7 @@ function getFilteredJobs() {
     const matchesYear = state.jobsYear === "all" ||
       getJobYears(job).includes(Number(state.jobsYear));
     if (!matchesYear) return false;
+    if (!jobMatchesStatusFilter(job, state.jobsStatus)) return false;
     if (!queryTokens.length) return true;
     const haystack = normalizeSearchText([
       job.pekerjaan,
@@ -1725,24 +1759,7 @@ function getFilteredJobs() {
     return queryTokens.every(token => haystack.includes(token));
   });
 
-  jobs = jobs.sort((a, b) => {
-    if (state.jobsSort === "name-desc") {
-      return b.pekerjaan.localeCompare(a.pekerjaan);
-    }
-    if (state.jobsSort === "year-desc") {
-      return Math.max(...getJobYears(b), 0) - Math.max(...getJobYears(a), 0);
-    }
-    if (state.jobsSort === "year-asc") {
-      return Math.min(...getJobYears(a), 9999) - Math.min(...getJobYears(b), 9999);
-    }
-    if (state.jobsSort === "start-asc") {
-      return getComparableDate(a.tanggalMulai) - getComparableDate(b.tanggalMulai);
-    }
-    if (state.jobsSort === "finish-desc") {
-      return getComparableDate(b.tanggalSelesai) - getComparableDate(a.tanggalSelesai);
-    }
-    return a.pekerjaan.localeCompare(b.pekerjaan);
-  });
+  jobs = jobs.sort((a, b) => a.pekerjaan.localeCompare(b.pekerjaan, "id"));
 
   return jobs;
 }
@@ -1776,10 +1793,11 @@ function renderJobs() {
 
   if (resultCount) resultCount.textContent = `${jobs.length} pekerjaan ditemukan`;
   if (!visible.length) {
-    tableBody.innerHTML = '<tr><td class="personnel-empty" colspan="6">Tidak ada pekerjaan yang cocok.</td></tr>';
+    tableBody.innerHTML = '<tr><td class="personnel-empty" colspan="7">Tidak ada pekerjaan yang cocok.</td></tr>';
   } else {
     tableBody.innerHTML = visible.map((job, index) => `
       <tr class="clickable-row" data-job-index="${startIndex + index}" tabindex="0">
+        <td data-label="No.">${startIndex + index + 1}</td>
         <td data-label="Pekerjaan"><strong>${escapeHtml(job.pekerjaan)}</strong></td>
         <td data-label="Tahun">${escapeHtml(getJobYearLabel(job))}</td>
         <td data-label="Tanggal Mulai">${escapeHtml(job.tanggalMulai || "-")}</td>
@@ -1805,12 +1823,12 @@ function setJobsPaginationButtons(pageCount) {
 function resetJobsFilters() {
   state.jobsSearch = "";
   state.jobsYear = "all";
-  state.jobsSort = "name-asc";
+  state.jobsStatus = "all";
   state.jobsPage = 1;
   state.jobsPageSize = 25;
   document.getElementById("jobsSearch").value = "";
   document.getElementById("jobsYearFilter").value = "all";
-  document.getElementById("jobsSort").value = state.jobsSort;
+  document.getElementById("jobsStatusFilter").value = state.jobsStatus;
   document.getElementById("jobsPageSize").value = "25";
   renderJobs();
 }
@@ -2307,8 +2325,9 @@ function getJobsExportData() {
   }
   return {
     title: "Daftar Pekerjaan",
-    columns: ["Pekerjaan", "Tahun", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Personil", "Status Pekerjaan"],
-    records: jobs.map(job => ({
+    columns: ["No.", "Pekerjaan", "Tahun", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Personil", "Status Pekerjaan"],
+    records: jobs.map((job, index) => ({
+      "No.": index + 1,
       Pekerjaan: job.pekerjaan,
       Tahun: getJobYearLabel(job),
       "Tanggal Mulai": job.tanggalMulai || "-",
@@ -3576,6 +3595,108 @@ function watchTenders() {
   });
 }
 
+function createStableTenderJobId(jobName) {
+  const value = normalizeSearchText(jobName);
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `tender-job-${(hash >>> 0).toString(36)}`;
+}
+
+function getFirstJobRecordValue(job, keywords) {
+  for (const record of job?.records || []) {
+    const value = getRecordValue(record, keywords);
+    if (value !== "") return value;
+  }
+  return "";
+}
+
+async function syncTenderJobsFromDataUtama() {
+  if (!currentUser || !canManageTenders() || tenderJobSyncInProgress) return;
+  const tenderJobs = buildJobsFromDataUtama()
+    .filter(job => jobMatchesStatusFilter(job, "tender"));
+  const signature = JSON.stringify(tenderJobs.map(job => [
+    normalizeSearchText(job.pekerjaan),
+    getJobYearLabel(job),
+    getJobStatus(job),
+    job.records.length
+  ]));
+  if (signature === lastTenderJobSignature) return;
+
+  tenderJobSyncInProgress = true;
+  try {
+    for (const job of tenderJobs) {
+      const sourceJobKey = normalizeSearchText(job.pekerjaan);
+      const knownTender = state.tenders.find(item =>
+        item.sourceJobKey === sourceJobKey ||
+        normalizeSearchText(item.name) === sourceJobKey
+      );
+      const reference = doc(
+        db,
+        TENDER_STORAGE_COLLECTION,
+        knownTender?.id || createStableTenderJobId(job.pekerjaan)
+      );
+      const snapshot = await getDoc(reference);
+      const existing = snapshot.exists() ? snapshot.data() : (knownTender || null);
+      const sourcePayload = {
+        entityType: "tender",
+        sourceType: "data-utama",
+        sourceJobKey,
+        sourceStatus: getJobStatus(job),
+        name: job.pekerjaan,
+        agency: getFirstJobRecordValue(job, ["instansi", "satker", "pemberi kerja", "owner"]),
+        location: getFirstJobRecordValue(job, ["lokasi", "wilayah"]),
+        funding: getFirstJobRecordValue(job, ["sumber dana", "pendanaan"]),
+        budgetYear: getJobYearLabel(job),
+        budgetCeiling: parseIndonesianNumber(
+          getFirstJobRecordValue(job, ["pagu", "nilai pagu", "pagu anggaran"])
+        ),
+        hps: parseIndonesianNumber(
+          getFirstJobRecordValue(job, ["hps", "nilai hps"])
+        ),
+        method: getFirstJobRecordValue(job, ["metode seleksi", "metode pengadaan"]),
+        contractType: getFirstJobRecordValue(job, ["jenis kontrak", "tipe kontrak"]),
+        deadline: getFirstJobRecordValue(job, [
+          "deadline",
+          "batas pemasukan",
+          "tanggal pemasukan",
+          "tanggal penawaran"
+        ]),
+        owner: getFirstJobRecordValue(job, ["pic", "penanggung jawab"]),
+        ownerEmail: getFirstJobRecordValue(job, ["email pic", "email penanggung jawab"]),
+        sourcePersonnelCount: job.records.length
+      };
+      const comparableKeys = Object.keys(sourcePayload);
+      const changed = !existing || comparableKeys.some(key =>
+        String(existing?.[key] ?? "") !== String(sourcePayload[key] ?? "")
+      );
+      if (!changed) continue;
+
+      const payload = {
+        ...sourcePayload,
+        updatedAt: serverTimestamp()
+      };
+      if (!existing) {
+        Object.assign(payload, {
+          status: "Persiapan",
+          driveUrl: "",
+          notes: "Paket dibuat otomatis dari DATA UTAMA karena Status Pekerjaan adalah Tender.",
+          documents: createTenderChecklist(),
+          createdAt: serverTimestamp()
+        });
+      }
+      await setDoc(reference, payload, { merge: true });
+    }
+    lastTenderJobSignature = signature;
+  } catch (error) {
+    console.error("Pekerjaan berstatus Tender gagal disinkronkan:", error);
+  } finally {
+    tenderJobSyncInProgress = false;
+  }
+}
+
 function setTenderSyncStatus(status, message) {
   const element = document.getElementById("tenderSyncStatus");
   if (!element) return;
@@ -3815,6 +3936,8 @@ function renderTenderDetail(tender) {
     ["HPS", escapeHtml(formatRupiah(tender.hps))],
     ["Metode Seleksi", escapeHtml(tender.method || "-")],
     ["Jenis Kontrak", escapeHtml(tender.contractType || "-")],
+    ["Status DATA UTAMA", escapeHtml(tender.sourceStatus || "-")],
+    ["Jumlah Personil", escapeHtml(String(tender.sourcePersonnelCount ?? "-"))],
     ["Deadline", escapeHtml(formatTenderDateTime(tender.deadline))],
     ["Penanggung Jawab", escapeHtml(tender.owner || "-")],
     ["Folder Dokumen", tender.driveUrl
