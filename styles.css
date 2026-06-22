@@ -1199,17 +1199,48 @@ input:focus, select:focus, textarea:focus {
   margin: 32px 0 0 auto;
 }
 
-.tender-form-card {
-  width: min(900px, calc(100vw - 28px));
+#tenderFormModal {
+  width: min(1080px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+
+#tenderFormModal .tender-form-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
 }
 
 .tender-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  max-height: 65dvh;
+  gap: 14px 18px;
+  min-width: 0;
+  max-height: calc(100dvh - 190px);
+  overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 2px 10px 6px 2px;
+}
+
+.tender-form-grid label,
+.tender-form-grid input,
+.tender-form-grid select,
+.tender-form-grid textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
+#tenderFormModal .tender-form-card > footer {
+  position: sticky;
+  bottom: 0;
+  margin: 0 -2px -2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  background: #ffffff;
 }
 
 .tender-form-grid .full {
@@ -2778,6 +2809,22 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .template-generator-controls,
   .tender-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  #tenderFormModal {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  #tenderFormModal .tender-form-card {
+    max-height: calc(100dvh - 20px);
+    padding: 16px;
+  }
+
+  .tender-form-grid {
+    max-height: calc(100dvh - 180px);
+    gap: 12px;
+    padding-right: 5px;
   }
 
   .tender-form-grid .full {

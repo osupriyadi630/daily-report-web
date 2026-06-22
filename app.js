@@ -3603,7 +3603,7 @@ async function saveTender(event) {
     state.selectedTenderId = reference.id;
     closeTenderForm();
   } catch (error) {
-    alert(`Paket tender gagal disimpan: ${error.message}`);
+    alert(getTenderFirestoreErrorMessage(error, "Paket tender gagal disimpan."));
   }
 }
 
@@ -3620,7 +3620,7 @@ async function deleteSelectedTender() {
     await deleteDoc(doc(db, "tenders", tender.id));
     state.selectedTenderId = "";
   } catch (error) {
-    alert(`Paket tender gagal dihapus: ${error.message}`);
+    alert(getTenderFirestoreErrorMessage(error, "Paket tender gagal dihapus."));
   }
 }
 
@@ -3690,7 +3690,7 @@ async function saveTenderChecklist() {
     }, { merge: true });
     alert("Monitoring dokumen berhasil disimpan.");
   } catch (error) {
-    alert(`Monitoring dokumen gagal disimpan: ${error.message}`);
+    alert(getTenderFirestoreErrorMessage(error, "Monitoring dokumen gagal disimpan."));
   }
 }
 
@@ -3825,8 +3825,17 @@ async function saveTenderTemplateDraft() {
     }, { merge: true });
     alert("Draf template berhasil disimpan pada paket tender.");
   } catch (error) {
-    alert(`Draf template gagal disimpan: ${error.message}`);
+    alert(getTenderFirestoreErrorMessage(error, "Draf template gagal disimpan."));
   }
+}
+
+function getTenderFirestoreErrorMessage(error, prefix) {
+  const code = String(error?.code || "");
+  const message = String(error?.message || "");
+  if (code.includes("permission-denied") || message.toLowerCase().includes("insufficient permissions")) {
+    return `${prefix}\n\nFirestore menolak izin koleksi tenders. Buka Firebase Console > Firestore Database > Rules, masukkan firestore.rules terbaru, lalu klik Publish. Setelah itu muat ulang web.`;
+  }
+  return `${prefix}\n\n${message || "Terjadi kesalahan yang tidak diketahui."}`;
 }
 
 function sanitizeTenderTemplateHtml(value) {
