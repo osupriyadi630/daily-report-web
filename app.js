@@ -189,7 +189,7 @@ let state = {
   externalSheets: createInitialExternalSheets(createDefaultAppConfig()),
   today: getToday(),
   filter: "all",
-  activeView: "dashboard",
+  activeView: "jobs",
   syncMessage: "Menunggu login...",
   authMode: "login",
   selectedRecipientEmail: "",
