@@ -1739,9 +1739,6 @@ function openJobDetail(job) {
       <div><span>Tanggal Selesai</span><strong>${escapeHtml(job.tanggalSelesai || "-")}</strong></div>
       <div><span>Jumlah Personil</span><strong>${job.records.length}</strong></div>
     </div>
-    <div class="job-detail-scrollbar" aria-label="Geser tabel secara horizontal">
-      <div class="job-detail-scrollbar-track"></div>
-    </div>
     <div class="job-detail-table-surface">
       <table class="job-detail-wide-table">
         <colgroup>
@@ -1761,6 +1758,9 @@ function openJobDetail(job) {
         </tbody>
       </table>
     </div>
+    <div class="job-detail-floating-scrollbar" aria-label="Geser tabel secara horizontal">
+      <div class="job-detail-scrollbar-track"></div>
+    </div>
   `;
   modal.showModal();
   setupJobDetailScrollSync(body);
@@ -1774,15 +1774,15 @@ function closeJobDetail() {
 }
 
 function setupJobDetailScrollSync(container) {
-  const topScroller = container.querySelector(".job-detail-scrollbar");
-  const topTrack = container.querySelector(".job-detail-scrollbar-track");
+  const floatingScroller = container.querySelector(".job-detail-floating-scrollbar");
+  const floatingTrack = container.querySelector(".job-detail-scrollbar-track");
   const tableScroller = container.querySelector(".job-detail-table-surface");
   const table = container.querySelector(".job-detail-wide-table");
-  if (!topScroller || !topTrack || !tableScroller || !table) return;
+  if (!floatingScroller || !floatingTrack || !tableScroller || !table) return;
 
   let syncing = false;
   const updateTrackWidth = () => {
-    topTrack.style.width = `${table.scrollWidth}px`;
+    floatingTrack.style.width = `${table.scrollWidth}px`;
   };
   const syncScroll = (source, target) => {
     if (syncing) return;
@@ -1793,8 +1793,8 @@ function setupJobDetailScrollSync(container) {
     });
   };
 
-  topScroller.addEventListener("scroll", () => syncScroll(topScroller, tableScroller));
-  tableScroller.addEventListener("scroll", () => syncScroll(tableScroller, topScroller));
+  floatingScroller.addEventListener("scroll", () => syncScroll(floatingScroller, tableScroller));
+  tableScroller.addEventListener("scroll", () => syncScroll(tableScroller, floatingScroller));
   jobDetailResizeObserver?.disconnect();
   jobDetailResizeObserver = new ResizeObserver(updateTrackWidth);
   jobDetailResizeObserver.observe(table);
