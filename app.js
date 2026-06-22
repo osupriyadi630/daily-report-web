@@ -73,7 +73,7 @@ const CONFIGURABLE_ROLES = ["admin", "editor", "author", "contributor", "moderat
 const MENU_DEFINITIONS = [
   { id: "dashboard", label: "Dashboard" },
   { id: "tenders", label: "Tender" },
-  { id: "jobs", label: "Pekerjaan" },
+  { id: "jobs", label: "Portofolio" },
   { id: "personnel", label: "Personil" },
   { id: "tasks", label: "Tugas" },
   { id: "reports", label: "Laporan" },
@@ -206,6 +206,7 @@ let state = {
   jobsPage: 1,
   jobsPageSize: 25,
   jobsVisibleRecords: [],
+  portfolioFeaturedJobs: [],
   dashboardActivePersonnelRecords: [],
   dashboardInactivePersonnelRecords: [],
   selectedTenderId: "",
@@ -341,6 +342,7 @@ function bindControls() {
   document.getElementById("jobsPrevPage").addEventListener("click", () => changeJobsPage(-1));
   document.getElementById("jobsNextPage").addEventListener("click", () => changeJobsPage(1));
   document.getElementById("jobsTableBody").addEventListener("click", handleJobsTableClick);
+  document.getElementById("portfolioFeaturedJobs").addEventListener("click", handlePortfolioCardClick);
   document.getElementById("closeJobDetailButton").addEventListener("click", closeJobDetail);
   document.getElementById("closeJobDetailFooter").addEventListener("click", closeJobDetail);
   document.getElementById("addJobDetailRowButton").addEventListener("click", () => openJobRecordForm(null, currentJobDetail));
@@ -1795,6 +1797,151 @@ function getFilteredJobs() {
   return jobs;
 }
 
+function getPortfolioStatusKey(job) {
+  if (jobMatchesStatusFilter(job, "tender")) return "tender";
+  if (jobMatchesStatusFilter(job, "finish-overtime")) return "finish-overtime";
+  if (jobMatchesStatusFilter(job, "finish")) return "finish";
+  if (jobMatchesStatusFilter(job, "upcoming")) return "upcoming";
+  if (jobMatchesStatusFilter(job, "ongoing") ||
+      (job.records || []).some(isActiveWorkRecord)) return "active";
+  return "neutral";
+}
+
+function getPortfolioStatusLabel(job) {
+  const status = getJobStatus(job);
+  if (status && status !== "-") return status;
+  const key = getPortfolioStatusKey(job);
+  return {
+    active: "Aktif",
+    tender: "Tender",
+    upcoming: "Upcoming",
+    finish: "Finish",
+    "finish-overtime": "Finish Overtime"
+  }[key] || "Belum Ditentukan";
+}
+
+function getPortfolioProgress(job) {
+  const key = getPortfolioStatusKey(job);
+  if (key === "finish" || key === "finish-overtime") return 100;
+  if (key === "tender") {
+    const target = normalizeSearchText(job.pekerjaan);
+    const tender = state.tenders.find(item =>
+      item.id === job.tenderId ||
+      item.sourceJobKey === target ||
+      normalizeSearchText(item.name) === target
+    );
+    return tender ? getTenderProgress(tender).percent : 0;
+  }
+  if (key === "upcoming") return 12;
+  if (key !== "active") return 0;
+
+  const start = getComparableDate(job.tanggalMulai);
+  const finish = getComparableDate(job.tanggalSelesai);
+  const now = Date.now();
+  if (start && finish && finish > start) {
+    return Math.min(95, Math.max(5, Math.round(((now - start) / (finish - start)) * 100)));
+  }
+  return 60;
+}
+
+function getPortfolioPeople(job) {
+  const names = [];
+  const seen = new Set();
+  (job.records || []).forEach(record => {
+    const name = getRecordValue(record, ["nama personil", "nama lengkap", "nama"]);
+    const key = canonicalPersonnelName(name) || normalizeSearchText(name);
+    if (!name || seen.has(key)) return;
+    seen.add(key);
+    names.push(name);
+  });
+  return names.slice(0, 4);
+}
+
+function getInitials(value) {
+  const words = String(value || "").trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, 2).map(word => word[0]).join("").toUpperCase() || "AH";
+}
+
+function getPortfolioCardPriority(job) {
+  return {
+    tender: 0,
+    active: 1,
+    upcoming: 2,
+    "finish-overtime": 3,
+    finish: 4,
+    neutral: 5
+  }[getPortfolioStatusKey(job)] ?? 6;
+}
+
+function renderPortfolioOverview(filteredJobs) {
+  const allJobs = buildJobsFromAllSources();
+  const counts = {
+    total: allJobs.length,
+    active: allJobs.filter(job => getPortfolioStatusKey(job) === "active").length,
+    tender: allJobs.filter(job => getPortfolioStatusKey(job) === "tender").length,
+    upcoming: allJobs.filter(job => getPortfolioStatusKey(job) === "upcoming").length
+  };
+  document.getElementById("portfolioTotalCount").textContent = counts.total;
+  document.getElementById("portfolioActiveCount").textContent = counts.active;
+  document.getElementById("portfolioTenderCount").textContent = counts.tender;
+  document.getElementById("portfolioUpcomingCount").textContent = counts.upcoming;
+  document.getElementById("portfolioCollectionCount").textContent = `${filteredJobs.length} item`;
+
+  const featured = [...filteredJobs]
+    .sort((left, right) =>
+      getPortfolioCardPriority(left) - getPortfolioCardPriority(right) ||
+      left.pekerjaan.localeCompare(right.pekerjaan, "id")
+    )
+    .slice(0, 3);
+  state.portfolioFeaturedJobs = featured;
+
+  const container = document.getElementById("portfolioFeaturedJobs");
+  container.innerHTML = featured.length
+    ? featured.map((job, index) => {
+        const statusKey = getPortfolioStatusKey(job);
+        const people = getPortfolioPeople(job);
+        const progress = getPortfolioProgress(job);
+        const personCount = job.personnelCount ?? job.records.length;
+        const meta = [
+          getJobYearLabel(job) !== "-" ? getJobYearLabel(job) : "",
+          `${personCount} personil`,
+          job.tanggalSelesai ? `selesai ${job.tanggalSelesai}` : ""
+        ].filter(Boolean).join(" - ");
+        return `
+          <button class="portfolio-job-card status-${escapeHtml(statusKey)}" type="button" data-portfolio-job-index="${index}">
+            <span class="portfolio-card-accent"></span>
+            <span class="portfolio-card-heading">
+              <strong>${escapeHtml(job.pekerjaan)}</strong>
+              <span class="portfolio-status">${escapeHtml(getPortfolioStatusLabel(job))}</span>
+            </span>
+            <small>${escapeHtml(meta || "Informasi jadwal belum lengkap")}</small>
+            <span class="portfolio-progress-track" aria-label="Indikator tahap ${progress}%">
+              <span style="width:${progress}%"></span>
+            </span>
+            <span class="portfolio-card-footer">
+              <b>${progress}%</b>
+              <span class="portfolio-avatars">
+                ${people.map(name => `<i title="${escapeHtml(name)}">${escapeHtml(getInitials(name))}</i>`).join("")}
+                ${people.length ? "" : "<em>Belum ada personil</em>"}
+              </span>
+            </span>
+          </button>
+        `;
+      }).join("")
+    : '<div class="portfolio-empty">Tidak ada pekerjaan yang cocok dengan filter.</div>';
+
+  const selectedYear = getCurrentSummaryYear();
+  const personnel = getAllIntegratedPersonnelRecords(selectedYear);
+  const availablePersonnel = personnel.filter(record => getPersonnelActiveWork(record) <= 0).length;
+  const briefParts = [];
+  if (counts.tender) briefParts.push(`${counts.tender} paket Tender perlu dipantau`);
+  if (counts.upcoming) briefParts.push(`${counts.upcoming} pekerjaan Upcoming perlu persiapan`);
+  if (availablePersonnel) briefParts.push(`${availablePersonnel} personil tersedia untuk dialokasikan`);
+  document.getElementById("portfolioAiBrief").textContent = briefParts.length
+    ? `${briefParts.join(". ")}.`
+    : "Portofolio tidak memiliki peringatan utama berdasarkan data yang tersedia.";
+}
+
 function renderJobs() {
   const sheet = getDataUtamaSheet();
   const syncText = document.getElementById("jobsSyncText");
@@ -1815,6 +1962,7 @@ function renderJobs() {
   }
 
   const jobs = getFilteredJobs();
+  renderPortfolioOverview(jobs);
   state.jobsVisibleRecords = jobs;
   const pageSize = Number(state.jobsPageSize) || 25;
   const pageCount = Math.max(1, Math.ceil(jobs.length / pageSize));
@@ -1873,6 +2021,16 @@ function handleJobsTableClick(event) {
   const row = event.target.closest("[data-job-index]");
   if (!row) return;
   const job = state.jobsVisibleRecords[Number(row.dataset.jobIndex)];
+  openPortfolioJob(job);
+}
+
+function handlePortfolioCardClick(event) {
+  const card = event.target.closest("[data-portfolio-job-index]");
+  if (!card) return;
+  openPortfolioJob(state.portfolioFeaturedJobs[Number(card.dataset.portfolioJobIndex)]);
+}
+
+function openPortfolioJob(job) {
   if (!job) return;
   if (job.tenderId) {
     state.selectedTenderId = job.tenderId;
@@ -1968,6 +2126,7 @@ function openJobDetail(job) {
       <table class="job-detail-wide-table">
         <colgroup>
           ${columns.map(column => `<col class="${getJobDetailColumnClass(column)}">`).join("")}
+          ${canManagePersonnel() ? '<col class="compact">' : ""}
         </colgroup>
         <thead>
           <tr>
@@ -1978,11 +2137,25 @@ function openJobDetail(job) {
         <tbody>
           ${job.records.map((record, recordIndex) => `
             <tr>
-              ${columns.map(column => `<td>${escapeHtml(getRecordDisplayValue(record, column))}</td>`).join("")}
+              ${columns.map(column => `
+                <td data-label="${escapeHtml(humanizeFieldName(column))}">
+                  ${escapeHtml(getRecordDisplayValue(record, column))}
+                </td>
+              `).join("")}
               ${canManagePersonnel() ? `
-                <td class="job-detail-row-actions">
-                  <button type="button" class="text-button" data-job-record-action="edit" data-job-record-index="${recordIndex}">Edit</button>
-                  <button type="button" class="text-button danger-text" data-job-record-action="delete" data-job-record-index="${recordIndex}">Hapus</button>
+                <td class="job-detail-row-actions" data-label="Aksi">
+                  <button
+                    type="button"
+                    class="job-detail-action-button"
+                    data-job-record-menu
+                    popovertarget="jobRecordActions${recordIndex}"
+                  >
+                    Pilihan <span class="dropdown-chevron" aria-hidden="true"></span>
+                  </button>
+                  <div id="jobRecordActions${recordIndex}" class="job-detail-action-menu" popover>
+                    <button type="button" data-job-record-action="edit" data-job-record-index="${recordIndex}">Edit</button>
+                    <button type="button" class="danger-text" data-job-record-action="delete" data-job-record-index="${recordIndex}">Hapus</button>
+                  </div>
                 </td>
               ` : ""}
             </tr>
@@ -2283,8 +2456,27 @@ async function saveJobRecord(event) {
 }
 
 function handleJobDetailAction(event) {
+  const menuButton = event.target.closest("[data-job-record-menu]");
+  if (menuButton) {
+    const menu = document.getElementById(menuButton.getAttribute("popovertarget"));
+    if (!menu) return;
+    const rect = menuButton.getBoundingClientRect();
+    const menuWidth = 150;
+    const menuHeight = 92;
+    const left = Math.min(window.innerWidth - menuWidth - 12, Math.max(12, rect.right - menuWidth));
+    const belowTop = rect.bottom + 6;
+    const top = belowTop + menuHeight <= window.innerHeight - 12
+      ? belowTop
+      : Math.max(12, rect.top - menuHeight - 6);
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    return;
+  }
+
   const button = event.target.closest("[data-job-record-action]");
   if (!button || !currentJobDetail) return;
+  const actionMenu = button.closest("[popover]");
+  if (actionMenu?.matches(":popover-open")) actionMenu.hidePopover();
   const record = currentJobDetail.records?.[Number(button.dataset.jobRecordIndex)];
   if (!record) return;
   if (button.dataset.jobRecordAction === "edit") {
@@ -4356,7 +4548,7 @@ function renderView() {
   const titles = {
     dashboard: "Dashboard",
     tenders: "Tender",
-    jobs: "Pekerjaan",
+    jobs: "Portofolio",
     personnel: "Personil",
     tasks: "Tugas",
     reports: "Laporan",

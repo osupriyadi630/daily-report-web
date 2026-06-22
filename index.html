@@ -10,7 +10,7 @@
       display: none !important;
     }
   </style>
-  <link rel="stylesheet" href="styles.css?v=20260623104500">
+  <link rel="stylesheet" href="styles.css?v=20260623133000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -100,7 +100,7 @@
       <nav class="nav">
         <button class="nav-item active" data-view="dashboard">Dashboard</button>
         <button class="nav-item" data-view="tenders">Tender</button>
-        <button class="nav-item" data-view="jobs">Pekerjaan</button>
+        <button class="nav-item" data-view="jobs">Portofolio</button>
         <button class="nav-item" data-view="personnel">Personil</button>
         <button class="nav-item" data-view="tasks">Tugas</button>
         <button class="nav-item" data-view="reports">Laporan</button>
@@ -303,11 +303,63 @@
       </section>
 
       <section id="jobsView" class="view">
-        <section class="panel jobs-panel">
+        <section class="portfolio-overview">
+          <div class="portfolio-overview-copy">
+            <span class="portfolio-eyebrow">Project Portfolio Workspace</span>
+            <h2>Portofolio Pekerjaan</h2>
+              <p>Koleksi pekerjaan, paket Tender, status, dan kapasitas personil dari sumber data yang sudah digunakan.</p>
+            <p id="jobsSyncText" class="portfolio-sync-text">Menunggu sinkronisasi DATA UTAMA...</p>
+          </div>
+          <div class="portfolio-metrics" aria-label="Ringkasan portofolio">
+            <article>
+              <span>Total Portfolio</span>
+              <strong id="portfolioTotalCount">0</strong>
+            </article>
+            <article class="active">
+              <span>Aktif</span>
+              <strong id="portfolioActiveCount">0</strong>
+            </article>
+            <article class="tender">
+              <span>Tender</span>
+              <strong id="portfolioTenderCount">0</strong>
+            </article>
+            <article class="upcoming">
+              <span>Upcoming</span>
+              <strong id="portfolioUpcomingCount">0</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="portfolio-featured-section">
+          <div class="portfolio-section-heading">
+            <div>
+              <h2>Koleksi Pilihan</h2>
+              <p>Klik kartu untuk membuka rincian pekerjaan atau monitoring Tender.</p>
+            </div>
+            <span id="portfolioCollectionCount" class="portfolio-collection-count">0 item</span>
+          </div>
+          <div id="portfolioFeaturedJobs" class="portfolio-featured-grid"></div>
+        </section>
+
+        <section class="portfolio-lower-grid">
+          <article class="panel portfolio-brief-panel">
+            <span class="portfolio-brief-icon">AI</span>
+            <div>
+              <h2>AI Portfolio Brief</h2>
+              <p id="portfolioAiBrief">Memuat ringkasan portofolio...</p>
+            </div>
+          </article>
+          <article class="panel portfolio-guide-panel">
+            <h2>Alur Data Dipertahankan</h2>
+            <p>Rincian, edit, hapus, tambah baris, PDF, dan Excel tetap menggunakan DATA UTAMA serta sinkronisasi lama.</p>
+          </article>
+        </section>
+
+        <section class="panel jobs-panel portfolio-list-panel">
           <div class="section-header personnel-heading">
             <div>
-              <h2>Daftar Pekerjaan</h2>
-              <p id="jobsSyncText">Menunggu sinkronisasi DATA UTAMA...</p>
+              <h2>Daftar Ringkas Portofolio</h2>
+              <p>Buka salah satu baris untuk melihat rincian lengkap.</p>
             </div>
             <div class="personnel-heading-actions">
               <button class="secondary-button" id="refreshJobsButton" type="button">Refresh</button>
@@ -1105,6 +1157,6 @@
   </dialog>
 
   <script src="firebase-config.js?v=20260622180000"></script>
-  <script type="module" src="app.js?v=20260623104500"></script>
+  <script type="module" src="app.js?v=20260623133000"></script>
 </body>
 </html>
