@@ -391,6 +391,7 @@ function bindControls() {
 }
 
 onAuthStateChanged(auth, async user => {
+  window.clearTimeout(window.__appBootTimer);
   currentUser = user;
   document.body.classList.remove("auth-pending");
   document.getElementById("loadingView").classList.add("hidden");
@@ -1855,11 +1856,6 @@ function getPortfolioPeople(job) {
     names.push(name);
   });
   return names.slice(0, 4);
-}
-
-function getInitials(value) {
-  const words = String(value || "").trim().split(/\s+/).filter(Boolean);
-  return words.slice(0, 2).map(word => word[0]).join("").toUpperCase() || "AH";
 }
 
 function getPortfolioCardPriority(job) {

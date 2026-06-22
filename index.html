@@ -10,6 +10,29 @@
       display: none !important;
     }
   </style>
+  <script>
+    function showAppBootError(message) {
+      const loadingView = document.getElementById("loadingView");
+      const authView = document.getElementById("authView");
+      const authMessage = document.getElementById("authMessage");
+      document.body.classList.remove("auth-pending");
+      loadingView?.classList.add("hidden");
+      authView?.classList.remove("hidden");
+      if (authMessage) {
+        authMessage.textContent = message || "Aplikasi gagal dimuat. Segarkan halaman untuk mencoba kembali.";
+      }
+    }
+
+    window.addEventListener("error", event => {
+      if (event.filename && (event.filename.includes("app.js") || event.filename.includes("firebase"))) {
+        showAppBootError("Aplikasi gagal dimuat. Silakan lakukan refresh halaman.");
+      }
+    });
+
+    window.__appBootTimer = window.setTimeout(() => {
+      showAppBootError("Koneksi memerlukan waktu terlalu lama. Silakan refresh halaman.");
+    }, 15000);
+  </script>
   <link rel="stylesheet" href="styles.css?v=20260623133000">
 </head>
 <body class="auth-pending">
@@ -1157,6 +1180,6 @@
   </dialog>
 
   <script src="firebase-config.js?v=20260622180000"></script>
-  <script type="module" src="app.js?v=20260623133000"></script>
+  <script type="module" src="app.js?v=20260623004500"></script>
 </body>
 </html>
