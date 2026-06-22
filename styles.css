@@ -2934,19 +2934,87 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
   padding-bottom: 80px;
 }
 .danger-text { color: #c62828; }
-.personnel-form-card { width: min(780px, calc(100vw - 28px)); }
+#personnelFormModal {
+  width: min(1080px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+
+.personnel-form-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: calc(100dvh - 32px);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.personnel-form-card > header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.personnel-form-card > header h2 {
+  margin: 0 0 4px;
+}
+
+.personnel-form-card > header p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .personnel-form-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  max-height: min(560px, 62dvh);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+  max-height: calc(100dvh - 240px);
+  overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 4px 10px 8px 2px;
+  scrollbar-gutter: stable;
 }
+
+.personnel-form-fields label {
+  min-width: 0;
+  align-content: start;
+}
+
+.personnel-form-fields label > span {
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.personnel-form-fields input,
+.personnel-form-fields select,
+.personnel-form-fields textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
 .personnel-form-fields .full { grid-column: 1 / -1; }
 .personnel-form-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f8fafc;
   color: var(--muted);
   font-size: 12px;
+}
+
+#personnelFormModal .personnel-form-card > footer {
+  position: sticky;
+  bottom: 0;
+  justify-content: flex-end;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  background: #ffffff;
 }
 
 .report-list { display: grid; gap: 12px; }
@@ -3415,6 +3483,7 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .tender-table-wrap { max-height: 420px; }
   .tender-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .job-record-form-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .personnel-form-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settings-grid { grid-template-columns: 1fr; }
   .portfolio-overview { grid-template-columns: 1fr; }
   .portfolio-bento-top { grid-template-columns: 1fr; }
@@ -3896,6 +3965,23 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .chat-launcher-label { display: none; }
   .personnel-form-fields { grid-template-columns: 1fr; }
   .personnel-form-fields .full { grid-column: auto; }
+  #personnelFormModal {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+  .personnel-form-card {
+    max-height: calc(100dvh - 20px);
+    padding: 16px;
+  }
+  .personnel-form-fields {
+    max-height: calc(100dvh - 235px);
+    gap: 12px;
+    padding-right: 5px;
+  }
+  #personnelFormModal .personnel-form-card > footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
   .ai-chat-dialog { width: calc(100vw - 16px); }
 }
 
