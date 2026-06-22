@@ -2333,6 +2333,19 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
   margin-top: 2px;
 }
 
+.dashboard-bento-home #dashboardOpenPortfolioButton {
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dashboard-bento-home #dashboardOpenPortfolioButton:hover {
+  text-decoration: underline;
+}
+
 .dashboard-operational-heading {
   display: flex;
   align-items: flex-end;
@@ -3465,8 +3478,11 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .jobs-panel { min-height: 0; }
   .portfolio-overview { gap: 16px; margin-bottom: 18px; padding: 18px; }
   .portfolio-workspace-shell { padding: 13px; }
-  .portfolio-workspace-header { align-items: flex-start; }
-  .portfolio-add-button { width: auto; }
+  .portfolio-workspace-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .portfolio-add-button { width: 100%; }
   .portfolio-summary-card,
   .portfolio-activity-card { padding: 14px; }
   .portfolio-total-line > strong { font-size: 40px; }
