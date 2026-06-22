@@ -1445,7 +1445,7 @@ function openJobDetail(job) {
 
   if (title) title.textContent = job.pekerjaan;
   if (source) {
-    source.textContent = `${job.records.length} baris dari Sheet DATA UTAMA`;
+    source.textContent = "Rincian pekerjaan dari Sheet DATA UTAMA";
   }
 
   const columns = getPersonnelColumns(job.records);
@@ -1455,19 +1455,26 @@ function openJobDetail(job) {
       <div><span>Tanggal Selesai</span><strong>${escapeHtml(job.tanggalSelesai || "-")}</strong></div>
       <div><span>Jumlah Personil</span><strong>${job.records.length}</strong></div>
     </div>
-    <div class="job-detail-table-wrap">
-      <table class="personnel-table">
-        <thead>
-          <tr>${columns.map(column => `<th>${escapeHtml(humanizeFieldName(column))}</th>`).join("")}</tr>
-        </thead>
-        <tbody>
-          ${job.records.map(record => `
-            <tr>
-              ${columns.map(column => `<td data-label="${escapeHtml(humanizeFieldName(column))}">${escapeHtml(record[column] || "-")}</td>`).join("")}
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
+    <div class="job-record-list">
+      ${job.records.map((record, index) => `
+        <article class="job-record-card">
+          <header class="job-record-header">
+            <div>
+              <small>Personil ${index + 1}</small>
+              <h3>${escapeHtml(getPersonnelName(record) || `Data ${index + 1}`)}</h3>
+            </div>
+            <span class="job-record-number">${String(index + 1).padStart(2, "0")}</span>
+          </header>
+          <dl class="job-record-fields">
+            ${columns.map(column => `
+              <div>
+                <dt>${escapeHtml(humanizeFieldName(column))}</dt>
+                <dd>${escapeHtml(record[column] || "-")}</dd>
+              </div>
+            `).join("")}
+          </dl>
+        </article>
+      `).join("")}
     </div>
   `;
   modal.showModal();
