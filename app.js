@@ -1630,12 +1630,15 @@ function getYearFromDateValue(value) {
 }
 
 function getJobYears(job) {
+  const overrideYears = String(job?.yearOverride || "")
+    .match(/\b(19|20)\d{2}\b/g)
+    ?.map(Number) || [];
   const explicitYears = (job?.records || [])
     .map(record => Number(getRecordValue(record, ["tahun", "year"])))
     .filter(year => year >= 1900 && year <= 2200);
   const startYear = getYearFromDateValue(job?.tanggalMulai);
   const finishYear = getYearFromDateValue(job?.tanggalSelesai);
-  const years = new Set(explicitYears);
+  const years = new Set([...overrideYears, ...explicitYears]);
 
   if (startYear && finishYear && finishYear >= startYear && finishYear - startYear <= 20) {
     for (let year = startYear; year <= finishYear; year += 1) years.add(year);
@@ -1654,7 +1657,7 @@ function getJobYearLabel(job) {
 }
 
 function getAvailableJobYears() {
-  return [...new Set(buildJobsFromDataUtama().flatMap(getJobYears))]
+  return [...new Set(buildJobsFromAllSources().flatMap(getJobYears))]
     .sort((a, b) => b - a);
 }
 
@@ -1703,7 +1706,35 @@ function buildJobsFromDataUtama() {
   return Array.from(groups.values());
 }
 
+function buildJobsFromAllSources() {
+  const jobs = buildJobsFromDataUtama();
+  const knownKeys = new Set(jobs.map(job => normalizeSearchText(job.pekerjaan)));
+
+  state.tenders.forEach(tender => {
+    const name = String(tender.name || "").trim();
+    const key = normalizeSearchText(tender.sourceJobKey || name);
+    if (!name || knownKeys.has(key)) return;
+    const personnel = getTenderPersonnel(tender);
+    jobs.push({
+      id: `tender:${tender.id}`,
+      pekerjaan: name,
+      tanggalMulai: tender.startDate || "",
+      tanggalSelesai: tender.deadline ? formatTenderDateTime(tender.deadline) : "",
+      records: [],
+      statusOverride: "Tender",
+      yearOverride: tender.budgetYear || "",
+      personnelCount: tender.sourcePersonnelCount ?? personnel.length,
+      tenderId: tender.id,
+      sourceType: "tender"
+    });
+    knownKeys.add(key);
+  });
+
+  return jobs;
+}
+
 function getJobStatus(job) {
+  if (job?.statusOverride) return job.statusOverride;
   const statuses = [...new Set((job?.records || [])
     .map(record => getRecordValue(record, ["status pekerjaan", "status project", "status proyek"]))
     .filter(Boolean))];
@@ -1743,7 +1774,7 @@ function jobMatchesStatusFilter(job, filter) {
 function getFilteredJobs() {
   const queryText = normalizeSearchText(state.jobsSearch);
   const queryTokens = getMeaningfulTokens(queryText);
-  let jobs = buildJobsFromDataUtama().filter(job => {
+  let jobs = buildJobsFromAllSources().filter(job => {
     const matchesYear = state.jobsYear === "all" ||
       getJobYears(job).includes(Number(state.jobsYear));
     if (!matchesYear) return false;
@@ -1802,7 +1833,7 @@ function renderJobs() {
         <td data-label="Tahun">${escapeHtml(getJobYearLabel(job))}</td>
         <td data-label="Tanggal Mulai">${escapeHtml(job.tanggalMulai || "-")}</td>
         <td data-label="Tanggal Selesai">${escapeHtml(job.tanggalSelesai || "-")}</td>
-        <td data-label="Jumlah Personil">${job.records.length}</td>
+        <td data-label="Jumlah Personil">${job.personnelCount ?? job.records.length}</td>
         <td data-label="Status Pekerjaan">${escapeHtml(getJobStatus(job))}</td>
       </tr>
     `).join("");
@@ -1842,7 +1873,14 @@ function handleJobsTableClick(event) {
   const row = event.target.closest("[data-job-index]");
   if (!row) return;
   const job = state.jobsVisibleRecords[Number(row.dataset.jobIndex)];
-  if (job) openJobDetail(job);
+  if (!job) return;
+  if (job.tenderId) {
+    state.selectedTenderId = job.tenderId;
+    setView("tenders");
+    renderTenders();
+    return;
+  }
+  openJobDetail(job);
 }
 
 function getJobDetailColumns(records) {
@@ -2332,7 +2370,7 @@ function getJobsExportData() {
       Tahun: getJobYearLabel(job),
       "Tanggal Mulai": job.tanggalMulai || "-",
       "Tanggal Selesai": job.tanggalSelesai || "-",
-      "Jumlah Personil": job.records.length,
+      "Jumlah Personil": job.personnelCount ?? job.records.length,
       "Status Pekerjaan": getJobStatus(job)
     }))
   };
@@ -3587,6 +3625,7 @@ function watchTenders() {
     }
     setTenderSyncStatus("ready", `Tersinkron realtime - ${state.tenders.length} paket`);
     renderTenders();
+    renderJobs();
   }, error => {
     state.tenders = [];
     setTenderSyncStatus("error", getTenderFirestoreErrorMessage(error, "Sinkronisasi Tender gagal."));
