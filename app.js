@@ -445,7 +445,9 @@ onAuthStateChanged(auth, async user => {
     watchProfiles();
     if (canManageRoles()) watchRoleAssignments();
     loadExternalSheetData();
-    externalSheetTimer = window.setInterval(loadExternalSheetData, 5 * 60 * 1000);
+    externalSheetTimer = window.setInterval(() => {
+      if (!document.hidden) loadExternalSheetData();
+    }, 60 * 1000);
     showWelcomeToast();
   } else {
     currentProfile = null;
@@ -459,6 +461,12 @@ onAuthStateChanged(auth, async user => {
     externalSheetLastLoadedAt = 0;
     state.syncMessage = "Menunggu login...";
     render();
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && currentUser && Date.now() - externalSheetLastLoadedAt > 30 * 1000) {
+    loadExternalSheetData();
   }
 });
 
@@ -1443,6 +1451,7 @@ async function loadExternalSheetData() {
   renderExternalSheetStatus();
   renderPersonnel();
   renderJobs();
+  renderDashboardPortfolioHome();
   renderDashboardWorkSummary();
 }
 
@@ -4027,10 +4036,15 @@ function watchTenders() {
     setTenderSyncStatus("ready", `Tersinkron realtime - ${state.tenders.length} paket`);
     renderTenders();
     renderJobs();
+    renderDashboardPortfolioHome();
+    renderDashboardWorkSummary();
   }, error => {
     state.tenders = [];
     setTenderSyncStatus("error", getTenderFirestoreErrorMessage(error, "Sinkronisasi Tender gagal."));
     renderTenders();
+    renderJobs();
+    renderDashboardPortfolioHome();
+    renderDashboardWorkSummary();
     console.error("Tender gagal disinkronkan:", error);
   });
 }
