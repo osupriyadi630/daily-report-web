@@ -25,13 +25,61 @@ import {
 
 const firebaseConfig = window.FIREBASE_CONFIG;
 if (!firebaseConfig || firebaseConfig.apiKey === "ISI_API_KEY_ANDA") {
-  alert("Firebase belum dikonfigurasi. Buat web/firebase-config.js dari firebase-config.example.js.");
+  notify("Firebase belum dikonfigurasi. Buat web/firebase-config.js dari firebase-config.example.js.");
 }
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 const db = getFirestore(app);
+
+function notify(message, options = {}) {
+  const text = String(message || "").trim();
+  if (!text) return;
+
+  const type = options.type || (/(gagal|error|tidak|belum|invalid|berakhir|ditolak|izin|permission)/i.test(text) ? "error" : "info");
+  const stack = getToastStack_();
+  const toast = document.createElement("div");
+  toast.className = `app-toast app-toast-${type}`;
+  toast.setAttribute("role", type === "error" ? "alert" : "status");
+  toast.setAttribute("aria-live", type === "error" ? "assertive" : "polite");
+
+  const dot = document.createElement("span");
+  dot.className = "app-toast-dot";
+  dot.setAttribute("aria-hidden", "true");
+
+  const messageNode = document.createElement("span");
+  messageNode.className = "app-toast-message";
+  messageNode.textContent = text;
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "app-toast-close";
+  closeButton.setAttribute("aria-label", "Tutup notifikasi");
+  closeButton.textContent = "x";
+
+  const close = () => {
+    toast.classList.add("closing");
+    window.setTimeout(() => toast.remove(), 180);
+  };
+
+  closeButton.addEventListener("click", close);
+  toast.append(dot, messageNode, closeButton);
+  stack.appendChild(toast);
+  window.setTimeout(close, options.duration || (type === "error" ? 5200 : 3600));
+}
+
+function getToastStack_() {
+  let stack = document.getElementById("appToastStack");
+  if (!stack) {
+    stack = document.createElement("div");
+    stack.id = "appToastStack";
+    stack.className = "app-toast-stack";
+    document.body.appendChild(stack);
+  }
+  return stack;
+}
+
 
 let currentUser = null;
 let currentProfile = null;
@@ -760,7 +808,7 @@ function canManageTenders() {
 
 function requirePermission(condition, message = "Anda tidak memiliki izin untuk tindakan ini.") {
   if (condition) return true;
-  alert(message);
+  notify(message);
   return false;
 }
 
@@ -2449,7 +2497,7 @@ function setupJobDetailScrollSync(container) {
 
 function getCurrentJobDetailExportData() {
   if (!currentJobDetail) {
-    alert("Rincian pekerjaan belum dipilih.");
+    notify("Rincian pekerjaan belum dipilih.");
     return null;
   }
 
@@ -2539,7 +2587,7 @@ function printHtmlDocument(html) {
     const printWindow = frame.contentWindow;
     if (!printWindow) {
       cleanup();
-      alert("Dokumen PDF tidak dapat disiapkan. Muat ulang halaman lalu coba kembali.");
+      notify("Dokumen PDF tidak dapat disiapkan. Muat ulang halaman lalu coba kembali.");
       return;
     }
     printWindow.addEventListener("afterprint", cleanup, { once: true });
@@ -2898,14 +2946,14 @@ function openJobRecordForm(record = null, job = null) {
 
   const sheet = getDataUtamaSheet();
   if (!sheet || sheet.status !== "ready") {
-    alert("DATA UTAMA belum terbaca. Klik Refresh lalu coba lagi.");
+    notify("DATA UTAMA belum terbaca. Klik Refresh lalu coba lagi.");
     return;
   }
   const columns = getEditableJobColumns(sheet.records);
   const jobColumn = columns.find(column =>
     includesAny(normalizeSearchText(column), ["pekerjaan", "nama pekerjaan", "project", "proyek"])
   );
-  if (!jobColumn) return alert("Kolom PEKERJAAN tidak ditemukan pada DATA UTAMA.");
+  if (!jobColumn) return notify("Kolom PEKERJAAN tidak ditemukan pada DATA UTAMA.");
 
   const initialRecord = { ...(record || {}) };
   if (!record && job?.pekerjaan) initialRecord[jobColumn] = job.pekerjaan;
@@ -2999,7 +3047,7 @@ async function deleteJobRecord(record) {
     "Hanya Super Admin, Editor, atau Author yang dapat menghapus rincian pekerjaan."
   )) return;
   const rowNumber = Number(record?.["_Sumber Baris"]) || 0;
-  if (!rowNumber) return alert("Nomor baris DATA UTAMA tidak ditemukan.");
+  if (!rowNumber) return notify("Nomor baris DATA UTAMA tidak ditemukan.");
   const personName = getRecordValue(record, ["nama personil", "nama lengkap", "nama"]) || "baris ini";
   if (!confirm(`Hapus rincian "${personName}" dari pekerjaan ${currentJobDetail?.pekerjaan || ""}?`)) return;
   await sendJobMutation("delete", { rowNumber, data: {} });
@@ -3007,10 +3055,10 @@ async function deleteJobRecord(record) {
 
 async function sendJobMutation(action, payload) {
   if (!window.PERSONNEL_BRIDGE_URL || !window.PERSONNEL_BRIDGE_TOKEN) {
-    alert("Bridge Google Spreadsheet belum dikonfigurasi.");
+    notify("Bridge Google Spreadsheet belum dikonfigurasi.");
     return;
   }
-  if (!currentUser) return alert("Silakan login kembali.");
+  if (!currentUser) return notify("Silakan login kembali.");
 
   const selectedJobName = currentJobDetail?.pekerjaan || "";
   try {
@@ -3031,7 +3079,7 @@ async function sendJobMutation(action, payload) {
     });
 
     if (action !== "delete") closeJobRecordForm();
-    alert(action === "delete"
+    notify(action === "delete"
       ? "Permintaan hapus rincian dikirim ke Google Spreadsheet."
       : "Data pekerjaan dikirim ke Google Spreadsheet.");
     await new Promise(resolve => window.setTimeout(resolve, 1400));
@@ -3044,7 +3092,7 @@ async function sendJobMutation(action, payload) {
       else closeJobDetail();
     }
   } catch (error) {
-    alert(`Data pekerjaan gagal dikirim: ${error.message}`);
+    notify(`Data pekerjaan gagal dikirim: ${error.message}`);
     document.getElementById("jobRecordFormStatus").textContent = error.message || "Perubahan gagal dikirim.";
   } finally {
     const saveButton = document.getElementById("saveJobRecordButton");
@@ -3055,7 +3103,7 @@ async function sendJobMutation(action, payload) {
 function getJobsExportData() {
   const jobs = getFilteredJobs();
   if (!jobs.length) {
-    alert("Tidak ada pekerjaan untuk diekspor.");
+    notify("Tidak ada pekerjaan untuk diekspor.");
     return null;
   }
   return {
@@ -3809,13 +3857,13 @@ function openPersonnelForm(record = null) {
 
   const sheet = getPersonnelSheet();
   if (!sheet || sheet.status !== "ready") {
-    alert("Data personil belum selesai dimuat.");
+    notify("Data personil belum selesai dimuat.");
     return;
   }
 
   const columns = getEditablePersonnelColumns(sheet.records);
   if (!columns.length) {
-    alert("Kolom personil belum dapat dikenali.");
+    notify("Kolom personil belum dapat dikenali.");
     return;
   }
 
@@ -3865,17 +3913,17 @@ async function deletePersonnelRecord(record) {
     "Hanya Super Admin, Editor, atau Author yang dapat menghapus data personil."
   )) return;
   const rowNumber = Number(record?.["_Sumber Baris"]) || 0;
-  if (!rowNumber) return alert("Nomor baris personil tidak ditemukan.");
+  if (!rowNumber) return notify("Nomor baris personil tidak ditemukan.");
   if (!confirm(`Hapus data personil "${getPersonnelName(record)}" dari Google Spreadsheet?`)) return;
   await sendPersonnelMutation("delete", { rowNumber, data: {} });
 }
 
 async function sendPersonnelMutation(action, payload) {
   if (!window.PERSONNEL_BRIDGE_URL || !window.PERSONNEL_BRIDGE_TOKEN) {
-    alert("Personnel Bridge belum dikonfigurasi. Ikuti panduan PERSONNEL-BRIDGE.md.");
+    notify("Personnel Bridge belum dikonfigurasi. Ikuti panduan PERSONNEL-BRIDGE.md.");
     return;
   }
-  if (!currentUser) return alert("Silakan login kembali.");
+  if (!currentUser) return notify("Silakan login kembali.");
 
   const submitButton = document.querySelector("#personnelForm button[type='submit']");
   if (submitButton) submitButton.disabled = true;
@@ -3898,13 +3946,13 @@ async function sendPersonnelMutation(action, payload) {
     });
 
     closePersonnelForm();
-    alert(action === "delete"
+    notify(action === "delete"
       ? "Permintaan hapus dikirim ke Google Spreadsheet."
       : "Data personil dikirim ke Google Spreadsheet.");
     await new Promise(resolve => window.setTimeout(resolve, 1400));
     await loadExternalSheetData();
   } catch (error) {
-    alert(`Data personil gagal dikirim: ${error.message}`);
+    notify(`Data personil gagal dikirim: ${error.message}`);
   } finally {
     if (submitButton) submitButton.disabled = false;
   }
@@ -3912,7 +3960,7 @@ async function sendPersonnelMutation(action, payload) {
 
 function exportPersonnelCsv() {
   const records = getFilteredPersonnelRecords();
-  if (!records.length) return alert("Tidak ada data personil untuk diekspor.");
+  if (!records.length) return notify("Tidak ada data personil untuk diekspor.");
   const columns = getPersonnelColumns(records);
   const rows = records.map(record => columns.map(column => getRecordDisplayValue(record, column)));
   const csv = [columns, ...rows].map(row => row.map(csvCell).join(",")).join("\n");
@@ -3928,7 +3976,7 @@ function exportPersonnelCsv() {
 function getPersonnelExportData() {
   const records = getFilteredPersonnelRecords();
   if (!records.length) {
-    alert("Tidak ada data personil untuk diekspor.");
+    notify("Tidak ada data personil untuk diekspor.");
     return null;
   }
   return {
@@ -4206,7 +4254,7 @@ async function saveProfile(event) {
       createdAt: currentProfile.createdAt || serverTimestamp()
     }, { merge: true });
   } catch (error) {
-    alert("Profil tersimpan pada perangkat ini, tetapi belum tersinkron ke Firebase. Periksa Rules koleksi profiles.");
+    notify("Profil tersimpan pada perangkat ini, tetapi belum tersinkron ke Firebase. Periksa Rules koleksi profiles.");
   }
 }
 
@@ -4215,9 +4263,9 @@ async function handleProfilePasswordReset() {
   closeProfileMenu();
   try {
     await sendPasswordResetEmail(auth, currentUser.email);
-    alert("Link reset password sudah dikirim ke email Anda.");
+    notify("Link reset password sudah dikirim ke email Anda.");
   } catch (error) {
-    alert(getAuthErrorMessage(error));
+    notify(getAuthErrorMessage(error));
   }
 }
 
@@ -4300,7 +4348,7 @@ function watchTasks() {
     state.tasks = loadCachedTasks();
     state.syncMessage = "Firebase gagal dibaca. Menampilkan cadangan lokal.";
     render();
-    alert(error.message);
+    notify(error.message);
   });
 }
 
@@ -4650,7 +4698,7 @@ async function saveTender(event) {
   } catch (error) {
     const message = getTenderFirestoreErrorMessage(error, "Paket tender gagal disimpan.");
     setTenderFormStatus(message, "error");
-    alert(message);
+    notify(message);
   } finally {
     saveButton.disabled = false;
     saveButton.textContent = "Simpan Paket";
@@ -4677,7 +4725,7 @@ async function deleteSelectedTender() {
     await deleteDoc(doc(db, TENDER_STORAGE_COLLECTION, tender.id));
     state.selectedTenderId = "";
   } catch (error) {
-    alert(getTenderFirestoreErrorMessage(error, "Paket tender gagal dihapus."));
+    notify(getTenderFirestoreErrorMessage(error, "Paket tender gagal dihapus."));
   }
 }
 
@@ -4751,9 +4799,9 @@ async function saveTenderChecklist() {
       updatedBy: normalizeEmail(currentUser?.email),
       updatedAt: serverTimestamp()
     }, { merge: true });
-    alert("Monitoring dokumen berhasil disimpan.");
+    notify("Monitoring dokumen berhasil disimpan.");
   } catch (error) {
-    alert(getTenderFirestoreErrorMessage(error, "Monitoring dokumen gagal disimpan."));
+    notify(getTenderFirestoreErrorMessage(error, "Monitoring dokumen gagal disimpan."));
   }
 }
 
@@ -4882,7 +4930,7 @@ function buildTenderTemplate(tender, type) {
 
 function generateTenderTemplate() {
   const tender = getSelectedTender();
-  if (!tender) return alert("Pilih paket tender terlebih dahulu.");
+  if (!tender) return notify("Pilih paket tender terlebih dahulu.");
   const type = document.getElementById("tenderTemplateType").value;
   document.getElementById("tenderTemplatePreview").innerHTML =
     sanitizeTenderTemplateHtml(tender.templates?.[type] || buildTenderTemplate(tender, type));
@@ -4895,7 +4943,7 @@ async function saveTenderTemplateDraft() {
   const content = sanitizeTenderTemplateHtml(
     document.getElementById("tenderTemplatePreview").innerHTML.trim()
   );
-  if (!content) return alert("Buat atau isi template terlebih dahulu.");
+  if (!content) return notify("Buat atau isi template terlebih dahulu.");
   try {
     await setDoc(doc(db, TENDER_STORAGE_COLLECTION, tender.id), {
       templates: {
@@ -4905,9 +4953,9 @@ async function saveTenderTemplateDraft() {
       updatedBy: normalizeEmail(currentUser?.email),
       updatedAt: serverTimestamp()
     }, { merge: true });
-    alert("Draf template berhasil disimpan pada paket tender.");
+    notify("Draf template berhasil disimpan pada paket tender.");
   } catch (error) {
-    alert(getTenderFirestoreErrorMessage(error, "Draf template gagal disimpan."));
+    notify(getTenderFirestoreErrorMessage(error, "Draf template gagal disimpan."));
   }
 }
 
@@ -4938,7 +4986,7 @@ function sanitizeTenderTemplateHtml(value) {
 function printTenderTemplate() {
   const tender = getSelectedTender();
   const preview = document.getElementById("tenderTemplatePreview");
-  if (!tender || !preview.textContent.trim()) return alert("Buat template terlebih dahulu.");
+  if (!tender || !preview.textContent.trim()) return notify("Buat template terlebih dahulu.");
   const html = `
     <!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(tender.name)} - Dokumen Tender</title>
     <style>
@@ -4986,13 +5034,13 @@ async function saveRoleAssignment(event) {
 
   const email = normalizeEmail(document.getElementById("roleEmailInput").value);
   const role = document.getElementById("roleSelect").value;
-  if (!email || !ACCESS_ROLES[role]) return alert("Email atau role tidak valid.");
+  if (!email || !ACCESS_ROLES[role]) return notify("Email atau role tidak valid.");
 
   if (email === BOOTSTRAP_SUPER_ADMIN_EMAIL && role !== "super_admin") {
-    return alert("Role Super Admin utama tidak dapat diturunkan.");
+    return notify("Role Super Admin utama tidak dapat diturunkan.");
   }
   if (state.accessRole !== "super_admin" && includesAny(role, ["super_admin", "admin"])) {
-    return alert("Administrator tidak dapat menetapkan Super Admin atau Administrator lain.");
+    return notify("Administrator tidak dapat menetapkan Super Admin atau Administrator lain.");
   }
 
   try {
@@ -5005,7 +5053,7 @@ async function saveRoleAssignment(event) {
     document.getElementById("roleAssignmentForm").reset();
     renderRoleSelectOptions();
   } catch (error) {
-    alert(`Role gagal disimpan: ${error.message}`);
+    notify(`Role gagal disimpan: ${error.message}`);
   }
 }
 
@@ -5019,16 +5067,16 @@ async function removeRoleAssignment(emailValue) {
   const email = normalizeEmail(emailValue);
   const assignment = state.roleAssignments.find(item => normalizeEmail(item.email) === email);
   if (!requirePermission(canManageRoles(), "Anda tidak memiliki izin menghapus role.")) return;
-  if (email === BOOTSTRAP_SUPER_ADMIN_EMAIL) return alert("Super Admin utama tidak dapat dihapus.");
+  if (email === BOOTSTRAP_SUPER_ADMIN_EMAIL) return notify("Super Admin utama tidak dapat dihapus.");
   if (state.accessRole !== "super_admin" && includesAny(assignment?.role || "", ["super_admin", "admin"])) {
-    return alert("Administrator tidak dapat menghapus role tingkat atas.");
+    return notify("Administrator tidak dapat menghapus role tingkat atas.");
   }
   if (!confirm(`Hapus penetapan role untuk ${email}? Pengguna akan kembali menjadi Member.`)) return;
 
   try {
     await deleteDoc(doc(db, "roles", email));
   } catch (error) {
-    alert(`Role gagal dihapus: ${error.message}`);
+    notify(`Role gagal dihapus: ${error.message}`);
   }
 }
 
@@ -5091,7 +5139,7 @@ function render() {
 
 function setView(view) {
   if (!canViewMenu(view)) {
-    alert("Role Anda tidak memiliki akses untuk membuka menu ini.");
+    notify("Role Anda tidak memiliki akses untuk membuka menu ini.");
     return;
   }
   state.activeView = view;
@@ -5634,13 +5682,13 @@ async function saveTask(event) {
   } catch (error) {
     state.syncMessage = "Firebase gagal menyimpan. Tugas tetap ada di cadangan lokal perangkat ini.";
     render();
-    alert(error.message);
+    notify(error.message);
   }
 }
 
 function editTask(id) {
   const task = state.tasks.find(item => item.id === id);
-  if (!task) return alert("Tugas tidak ditemukan.");
+  if (!task) return notify("Tugas tidak ditemukan.");
   if (!requirePermission(canEditTask(task), "Anda hanya dapat mengubah tugas sesuai kewenangan role Anda.")) return;
   document.getElementById("modalTitle").textContent = "Edit Tugas";
   document.getElementById("taskId").value = task.id;
@@ -5670,7 +5718,7 @@ async function removeTask(id) {
     state.syncMessage = "Tugas berhasil dihapus.";
     render();
   } catch (error) {
-    alert(error.message);
+    notify(error.message);
   }
 }
 
@@ -5694,13 +5742,13 @@ async function setTaskStatus(id, status) {
   } catch (error) {
     state.syncMessage = "Firebase gagal memperbarui status. Perubahan tetap ada di cadangan lokal.";
     render();
-    alert(error.message);
+    notify(error.message);
   }
 }
 
 function previewTask(id) {
   const task = state.tasks.find(item => item.id === id);
-  if (!task) return alert("Tugas tidak ditemukan.");
+  if (!task) return notify("Tugas tidak ditemukan.");
   document.getElementById("previewTitle").textContent = task.namaTugas || "Preview Tugas";
   document.getElementById("previewSubtitle").textContent = `${task.status || "-"} - ${task.prioritas || "-"}`;
   document.getElementById("previewBody").innerHTML = `
@@ -5727,8 +5775,8 @@ function closePreviewModal() {
 function sendTaskEmail(id) {
   if (!requirePermission(canSendReminders(), "Role Anda tidak dapat mengirim reminder.")) return;
   const task = state.tasks.find(item => item.id === id);
-  if (!task) return alert("Tugas tidak ditemukan.");
-  if (!task.emailPenanggungJawab) return alert("Email Penanggung Jawab belum diisi.");
+  if (!task) return notify("Tugas tidak ditemukan.");
+  if (!task.emailPenanggungJawab) return notify("Email Penanggung Jawab belum diisi.");
   sendEmail([task], [task.emailPenanggungJawab]);
 }
 
@@ -5737,19 +5785,19 @@ function sendAllReminders() {
   closeActionMenu();
   const tasks = state.tasks.filter(task => task.status !== "Selesai" && (task.tanggal === state.today || isOverdue(task)));
   const recipients = [...new Set(tasks.map(task => task.emailPenanggungJawab).filter(Boolean))];
-  if (!recipients.length) return alert("Belum ada email penanggung jawab pada tugas aktif.");
+  if (!recipients.length) return notify("Belum ada email penanggung jawab pada tugas aktif.");
   sendEmail(tasks, recipients);
 }
 
 function sendSelectedReminders() {
   if (!requirePermission(canSendReminders(), "Role Anda tidak dapat mengirim reminder.")) return;
   const email = state.selectedRecipientEmail || document.getElementById("selectedRecipientEmail").value;
-  if (!email) return alert("Pilih nama atau email penerima terlebih dahulu.");
+  if (!email) return notify("Pilih nama atau email penerima terlebih dahulu.");
   const tasks = state.tasks.filter(task =>
     String(task.emailPenanggungJawab || "").trim().toLowerCase() === email.toLowerCase() &&
     task.status !== "Selesai"
   );
-  if (!tasks.length) return alert("Penerima ini belum memiliki tugas aktif untuk dikirim.");
+  if (!tasks.length) return notify("Penerima ini belum memiliki tugas aktif untuk dikirim.");
   sendEmail(tasks, [email]);
 }
 
@@ -5766,7 +5814,7 @@ function sendEmail(tasks, recipients) {
         tasks
       })
     });
-    alert("Permintaan email dikirim ke Apps Script Email Bridge.");
+    notify("Permintaan email dikirim ke Apps Script Email Bridge.");
     return;
   }
 
@@ -5802,7 +5850,7 @@ function createReport() {
 function exportTasksCsv() {
   closeActionMenu();
   const tasks = getFilteredTasks(false);
-  if (!tasks.length) return alert("Belum ada tugas untuk diekspor.");
+  if (!tasks.length) return notify("Belum ada tugas untuk diekspor.");
 
   const headers = ["Tanggal", "Nama Tugas", "Prioritas", "Status", "Deadline", "Penanggung Jawab", "Email", "Catatan"];
   const rows = tasks.map(task => [

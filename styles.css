@@ -4431,3 +4431,105 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .topbar { grid-template-columns: 1fr; top: 0; }
   .topbar .top-actions { grid-template-columns: minmax(0, 1fr) auto; }
 }
+
+.app-toast-stack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1200;
+  display: grid;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.app-toast {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+  pointer-events: auto;
+  animation: app-toast-in 180ms ease-out;
+  backdrop-filter: blur(16px);
+}
+
+.app-toast-error {
+  border-color: rgba(239, 68, 68, 0.34);
+}
+
+.app-toast-info {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.app-toast-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.app-toast-error .app-toast-dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+}
+
+.app-toast-message {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.app-toast-close {
+  border: 0;
+  border-radius: 9px;
+  background: rgba(226, 232, 240, 0.78);
+  color: #334155;
+  font: inherit;
+  font-weight: 800;
+  line-height: 1;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.app-toast-close:hover {
+  background: rgba(203, 213, 225, 0.9);
+}
+
+.app-toast.closing {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+@keyframes app-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-toast-stack {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  .app-toast {
+    border-radius: 12px;
+  }
+}
