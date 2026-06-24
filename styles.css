@@ -160,8 +160,29 @@ button { cursor: pointer; }
 }
 
 .brand-row.compact {
+  position: relative;
   align-items: center;
-  min-width: 232px;
+  justify-content: center;
+  min-width: 310px;
+  min-height: 50px;
+  padding: 6px 16px 6px 20px;
+  overflow: hidden;
+  border: 1px solid rgba(191, 219, 254, 0.92);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, rgba(37, 99, 235, 0.88) 0 7px, transparent 7px),
+    linear-gradient(90deg, #ffffff 0%, #dbeafe 31%, #eff6ff 64%, #fecaca 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 12px 28px rgba(15, 23, 42, 0.2);
+}
+
+.brand-row.compact::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 7px;
+  background: rgba(220, 38, 38, 0.9);
 }
 
 .brand-mark {
@@ -177,11 +198,13 @@ button { cursor: pointer; }
 }
 
 .brand-company-logos {
+  position: relative;
+  z-index: 1;
   display: block;
-  width: clamp(132px, 12vw, 190px);
+  width: clamp(220px, 16vw, 285px);
   height: 42px;
   object-fit: contain;
-  object-position: left center;
+  object-position: center;
   flex: 0 0 auto;
 }
 
@@ -3540,11 +3563,13 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     gap: 12px;
   }
   .brand-row.compact {
-    min-width: 190px;
+    min-width: 260px;
+    min-height: 46px;
     gap: 9px;
+    padding: 6px 14px 6px 18px;
   }
   .brand-row.compact .brand-mark { width: 38px; height: 38px; }
-  .brand-company-logos { width: 132px; height: 38px; }
+  .brand-company-logos { width: 220px; height: 38px; }
   .nav { justify-content: flex-start; overflow-x: auto; }
   .nav-item { min-width: 76px; min-height: 50px; padding-inline: 9px; font-size: 12px; }
   .main {
@@ -3618,7 +3643,10 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 
   .brand-row.compact {
     min-width: 0;
+    width: min(50vw, 260px);
+    min-height: 46px;
     align-items: center;
+    padding: 6px 12px 6px 16px;
   }
 
   .brand-row.compact .brand-mark {
@@ -3629,7 +3657,8 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   }
 
   .brand-company-logos {
-    width: min(34vw, 150px);
+    width: 100%;
+    max-width: 220px;
     height: 42px;
   }
 
@@ -3722,8 +3751,27 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     text-align: center;
   }
   .personnel-table .personnel-empty::before { content: none; }
-  .personnel-pagination { align-items: stretch; }
-  .personnel-pagination button { padding-inline: 10px; }
+  .personnel-pagination {
+    position: relative;
+    z-index: 2;
+    align-items: center;
+    margin: 16px 0 4px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(245, 247, 251, 0.92);
+    clear: both;
+  }
+  .personnel-pagination span {
+    flex: 1;
+    text-align: center;
+    line-height: 1.35;
+  }
+  .personnel-pagination button {
+    flex: 0 0 auto;
+    max-width: 128px;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
   .personnel-detail-row { grid-template-columns: 1fr; gap: 4px; }
   .access-summary-panel {
     align-items: flex-start;
@@ -4090,7 +4138,11 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 }
 
 @media (max-width: 390px) {
-  .brand-company-logos { width: min(32vw, 118px); }
+  .brand-row.compact {
+    width: min(52vw, 212px);
+    padding-inline: 13px 10px;
+  }
+  .brand-company-logos { width: 100%; max-width: 182px; }
   .nav-item { font-size: 10px; }
   .topbar { grid-template-columns: 1fr; top: 0; }
   .topbar .top-actions { grid-template-columns: minmax(0, 1fr) auto; }
