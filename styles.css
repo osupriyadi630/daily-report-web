@@ -159,7 +159,10 @@ button { cursor: pointer; }
   gap: 12px;
 }
 
-.brand-row.compact { align-items: flex-start; }
+.brand-row.compact {
+  align-items: center;
+  min-width: 232px;
+}
 
 .brand-mark {
   display: grid;
@@ -170,6 +173,15 @@ button { cursor: pointer; }
   background: #38bdf8;
   color: #082f49;
   font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.brand-company-logos {
+  display: block;
+  width: clamp(132px, 12vw, 190px);
+  height: 42px;
+  object-fit: contain;
+  object-position: left center;
   flex: 0 0 auto;
 }
 
@@ -3527,9 +3539,12 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     padding: 8px 16px;
     gap: 12px;
   }
-  .brand-row.compact { gap: 9px; }
+  .brand-row.compact {
+    min-width: 190px;
+    gap: 9px;
+  }
   .brand-row.compact .brand-mark { width: 38px; height: 38px; }
-  .brand-row.compact strong { font-size: 13px; }
+  .brand-company-logos { width: 132px; height: 38px; }
   .nav { justify-content: flex-start; overflow-x: auto; }
   .nav-item { min-width: 76px; min-height: 50px; padding-inline: 9px; font-size: 12px; }
   .main {
@@ -3613,11 +3628,9 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     font-size: 13px;
   }
 
-  .brand-row.compact strong { font-size: 13px; }
-  .brand-row.compact small {
-    display: block;
-    max-width: 190px;
-    font-size: 10px;
+  .brand-company-logos {
+    width: min(34vw, 150px);
+    height: 42px;
   }
 
   .nav {
@@ -3771,12 +3784,7 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     padding: 10px 12px;
   }
   .topbar > div:first-child { min-width: 0; }
-  .header-logos {
-    order: initial;
-    width: 132px;
-    min-width: 0;
-  }
-  .header-logos img { height: 42px; }
+  .header-logos { display: none; }
   .topbar .top-actions {
     grid-column: 1 / -1;
     display: grid;
@@ -4082,13 +4090,8 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 }
 
 @media (max-width: 390px) {
-  .brand-row.compact small { max-width: 145px; }
+  .brand-company-logos { width: min(32vw, 118px); }
   .nav-item { font-size: 10px; }
   .topbar { grid-template-columns: 1fr; top: 0; }
-  .header-logos {
-    width: 100%;
-    max-width: 210px;
-    justify-self: start;
-  }
   .topbar .top-actions { grid-template-columns: minmax(0, 1fr) auto; }
 }

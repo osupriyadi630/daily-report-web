@@ -33,7 +33,7 @@
       showAppBootError("Koneksi memerlukan waktu terlalu lama. Silakan refresh halaman.");
     }, 15000);
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260623103000">
+  <link rel="stylesheet" href="styles.css?v=20260624093000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -116,9 +116,7 @@
     <aside class="sidebar">
       <div class="brand-row compact">
         <span class="brand-mark">AH</span>
-        <div>
-          <strong>Asisten Harian</strong>
-        </div>
+        <img class="brand-company-logos" src="assets/company-logos-transparent.webp" alt="Logo PT Bemaco Rekaprima dan mitra">
       </div>
       <nav class="nav">
         <button class="nav-item active" data-view="dashboard">
@@ -182,7 +180,7 @@
           <p id="todayText"></p>
           <p id="syncStatus" class="sync-status hidden" aria-live="polite">Menunggu login...</p>
         </div>
-        <div class="header-logos" aria-label="Logo perusahaan">
+        <div class="header-logos hidden" aria-label="Logo perusahaan">
           <img src="assets/company-logos-transparent.webp" alt="Logo PT Bemaco Rekaprima dan mitra">
         </div>
         <div class="top-actions">
