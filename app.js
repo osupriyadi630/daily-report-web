@@ -1415,9 +1415,7 @@ async function loadExternalSheetData() {
   }
 
   const results = await Promise.all(loadingSheets.map(async sheet => {
-    const defaultSource = DEFAULT_EXTERNAL_SHEET_SOURCES.find(source => source.id === sheet.id);
-    const usesDefaultUrl = !defaultSource || sheet.url === defaultSource.url;
-    if (usesDefaultUrl && Array.isArray(bridgeRecords[sheet.id])) {
+    if (Array.isArray(bridgeRecords[sheet.id])) {
       return {
         ...sheet,
         records: bridgeRecords[sheet.id],
@@ -1440,6 +1438,14 @@ async function loadExternalSheetData() {
         error: ""
       };
     } catch (error) {
+      if (Array.isArray(bridgeRecords[sheet.id])) {
+        return {
+          ...sheet,
+          records: bridgeRecords[sheet.id],
+          status: "ready",
+          error: ""
+        };
+      }
       return {
         ...sheet,
         status: "error",

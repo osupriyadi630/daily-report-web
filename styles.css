@@ -50,6 +50,19 @@ button { cursor: pointer; }
 }
 
 .loading-brand small { display: block; color: #aeb8c8; margin-top: 2px; }
+
+.loading-brand-logo {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.loading-brand-logo img {
+  width: min(190px, 70vw);
+  max-height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.25));
+}
 .loading-sidebar > span {
   height: 42px;
   border-radius: 8px;
@@ -153,6 +166,22 @@ button { cursor: pointer; }
   width: 52px;
   height: 52px;
   font-size: 18px;
+}
+
+.auth-brand-logo {
+  width: 100%;
+}
+
+.auth-brand-logo img {
+  width: min(270px, 82vw);
+  max-height: 88px;
+  object-fit: contain;
+  padding: 10px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(219, 234, 254, 0.92) 52%, rgba(254, 242, 242, 0.92));
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.28);
 }
 
 .brand-row {
