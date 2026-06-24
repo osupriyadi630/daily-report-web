@@ -1222,6 +1222,7 @@
         <button type="button" class="icon-button" id="closeTenderFormButton">x</button>
       </header>
       <input id="tenderId" type="hidden">
+      <datalist id="tenderPersonnelNameSuggestions"></datalist>
       <div class="tender-form-grid">
         <label class="full">Nama Paket
           <input id="tenderName" required placeholder="Nama paket pekerjaan">
@@ -1264,11 +1265,31 @@
           </select>
         </label>
         <label>Penanggung Jawab
-          <input id="tenderOwner" placeholder="Nama PIC/tim">
+          <span class="input-search-group">
+            <span class="input-search-icon" aria-hidden="true">⌕</span>
+            <input id="tenderOwner" list="tenderPersonnelNameSuggestions" autocomplete="off" placeholder="Cari nama PIC/tim">
+          </span>
         </label>
         <label>Email PIC
           <input id="tenderOwnerEmail" type="email" placeholder="nama@email.com">
         </label>
+        <label>Nama Personil
+          <span class="input-search-group">
+            <span class="input-search-icon" aria-hidden="true">⌕</span>
+            <input id="tenderPersonnelName" list="tenderPersonnelNameSuggestions" autocomplete="off" placeholder="Cari dari Personil Bemaco/Outsourcing">
+          </span>
+        </label>
+        <label>POSISI/JABATAN
+          <input id="tenderPersonnelPosition" placeholder="Contoh: Team Leader / Ahli K3">
+        </label>
+        <label>KETERLIBATAN
+          <select id="tenderPersonnelInvolvement">
+            <option value=""></option>
+            <option value="YA">YA</option>
+            <option value="TIDAK">TIDAK</option>
+          </select>
+        </label>
+        <section class="tender-personnel-reference full" id="tenderPersonnelReference" aria-live="polite"></section>
         <label class="full">Tautan Folder Dokumen
           <input id="tenderDriveUrl" type="url" placeholder="https://drive.google.com/...">
         </label>

@@ -368,6 +368,7 @@ function bindControls() {
   document.getElementById("tenderForm").addEventListener("submit", saveTender);
   document.getElementById("closeTenderFormButton").addEventListener("click", closeTenderForm);
   document.getElementById("cancelTenderFormButton").addEventListener("click", closeTenderForm);
+  document.getElementById("tenderName").addEventListener("input", renderTenderPersonnelReferenceFromForm);
   document.getElementById("tenderSearch").addEventListener("input", event => {
     state.tenderSearch = event.target.value;
     renderTenders();
@@ -2639,6 +2640,70 @@ function renderPersonnelNameSuggestions() {
   list.innerHTML = names.map(name => `<option value="${escapeHtml(name)}"></option>`).join("");
 }
 
+function renderTenderPersonnelSuggestions() {
+  const list = document.getElementById("tenderPersonnelNameSuggestions");
+  if (!list) return;
+  const names = getPersonnelNameSuggestions();
+  list.innerHTML = names.map(name => `<option value="${escapeHtml(name)}"></option>`).join("");
+}
+
+function getTenderReferencePersonnelByName(name) {
+  const sheet = getDataUtamaSheet();
+  if (!sheet || sheet.status !== "ready") return [];
+  const target = normalizeSearchText(name);
+  if (!target) return [];
+  return sheet.records.filter(record =>
+    normalizeSearchText(getRecordValue(record, ["pekerjaan", "nama pekerjaan", "project", "proyek"])) === target
+  );
+}
+
+function renderTenderPersonnelReferenceFromForm() {
+  const element = document.getElementById("tenderPersonnelReference");
+  if (!element) return;
+  const name = document.getElementById("tenderName")?.value || "";
+  const personnel = getTenderReferencePersonnelByName(name);
+
+  if (!name.trim()) {
+    element.innerHTML = `
+      <strong>Referensi personil DATA UTAMA</strong>
+      <span>Isi nama paket untuk membaca personil terkait dari Sheet DATA UTAMA.</span>
+    `;
+    return;
+  }
+
+  if (!personnel.length) {
+    element.innerHTML = `
+      <strong>Referensi personil DATA UTAMA</strong>
+      <span>Belum ditemukan personil terkait untuk paket ini.</span>
+    `;
+    return;
+  }
+
+  element.innerHTML = `
+    <strong>Referensi personil DATA UTAMA (${personnel.length} personil)</strong>
+    <div class="tender-personnel-reference-list">
+      ${personnel.slice(0, 8).map(record => {
+        const personName = getRecordValue(record, ["nama personil", "nama lengkap", "nama"]) || "-";
+        const position = getRecordValue(record, [
+          "posisi/jabatan (kontrak)",
+          "posisi/jabatan",
+          "jabatan",
+          "posisi"
+        ]) || "-";
+        const involvement = getRecordValue(record, ["keterlibatan"]) || "-";
+        return `
+          <div class="tender-personnel-reference-item">
+            <strong>${escapeHtml(personName)}</strong>
+            <span>${escapeHtml(position)}</span>
+            <span>Keterlibatan: ${escapeHtml(involvement)}</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    ${personnel.length > 8 ? `<span>+ ${personnel.length - 8} personil lainnya tersedia di DATA UTAMA.</span>` : ""}
+  `;
+}
+
 function openJobRecordForm(record = null, job = null) {
   closeJobsMenus();
   if (!requirePermission(
@@ -4321,8 +4386,13 @@ function openTenderForm(tender = null) {
   document.getElementById("tenderStatus").value = tender?.status || "Persiapan";
   document.getElementById("tenderOwner").value = tender?.owner || "";
   document.getElementById("tenderOwnerEmail").value = tender?.ownerEmail || "";
+  document.getElementById("tenderPersonnelName").value = tender?.personnelName || "";
+  document.getElementById("tenderPersonnelPosition").value = tender?.personnelPosition || "";
+  document.getElementById("tenderPersonnelInvolvement").value = tender?.personnelInvolvement || "";
   document.getElementById("tenderDriveUrl").value = tender?.driveUrl || state.appConfig?.driveUrl || "";
   document.getElementById("tenderNotes").value = tender?.notes || "";
+  renderTenderPersonnelSuggestions();
+  renderTenderPersonnelReferenceFromForm();
   document.getElementById("tenderFormModal").showModal();
 }
 
@@ -4351,6 +4421,9 @@ async function saveTender(event) {
     status: document.getElementById("tenderStatus").value,
     owner: document.getElementById("tenderOwner").value.trim(),
     ownerEmail: normalizeEmail(document.getElementById("tenderOwnerEmail").value),
+    personnelName: document.getElementById("tenderPersonnelName").value.trim(),
+    personnelPosition: document.getElementById("tenderPersonnelPosition").value.trim(),
+    personnelInvolvement: document.getElementById("tenderPersonnelInvolvement").value,
     driveUrl: document.getElementById("tenderDriveUrl").value.trim(),
     notes: document.getElementById("tenderNotes").value.trim(),
     documents: createTenderChecklist(existing?.documents),
@@ -4431,6 +4504,9 @@ function renderTenderDetail(tender) {
     ["Jumlah Personil", escapeHtml(String(tender.sourcePersonnelCount ?? "-"))],
     ["Deadline", escapeHtml(formatTenderDateTime(tender.deadline))],
     ["Penanggung Jawab", escapeHtml(tender.owner || "-")],
+    ["Nama Personil", escapeHtml(tender.personnelName || "-")],
+    ["POSISI/JABATAN", escapeHtml(tender.personnelPosition || "-")],
+    ["KETERLIBATAN", escapeHtml(tender.personnelInvolvement || "-")],
     ["Folder Dokumen", tender.driveUrl
       ? `<a href="${escapeHtml(tender.driveUrl)}" target="_blank" rel="noopener noreferrer">Buka folder</a>`
       : "-"]
@@ -4449,7 +4525,7 @@ function renderTenderDetail(tender) {
           ).join("")}
         </select>
       </td>
-      <td><input data-document-field="owner" value="${escapeHtml(item.owner)}" ${canManageTenders() ? "" : "disabled"}></td>
+      <td><input data-document-field="owner" list="tenderPersonnelNameSuggestions" autocomplete="off" value="${escapeHtml(item.owner)}" ${canManageTenders() ? "" : "disabled"}></td>
       <td><input data-document-field="deadline" type="date" value="${escapeHtml(item.deadline)}" ${canManageTenders() ? "" : "disabled"}></td>
       <td class="tender-document-link-cell">
         <input data-document-field="url" type="url" value="${escapeHtml(item.url)}" placeholder="https://..." ${canManageTenders() ? "" : "disabled"}>
@@ -4497,12 +4573,7 @@ function formatTenderDateTime(value) {
 }
 
 function getTenderPersonnel(tender) {
-  const sheet = getDataUtamaSheet();
-  if (!sheet || sheet.status !== "ready") return [];
-  const target = normalizeSearchText(tender?.name);
-  return sheet.records.filter(record =>
-    normalizeSearchText(getRecordValue(record, ["pekerjaan", "nama pekerjaan", "project", "proyek"])) === target
-  );
+  return getTenderReferencePersonnelByName(tender?.sourceJobKey || tender?.name);
 }
 
 function buildTenderTemplate(tender, type) {

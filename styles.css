@@ -1376,6 +1376,74 @@ input:focus, select:focus, textarea:focus {
   grid-column: 1 / -1;
 }
 
+.input-search-group {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.input-search-group:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.input-search-group input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.input-search-group input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.input-search-icon {
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.tender-personnel-reference {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(147, 197, 253, 0.65);
+  border-radius: 8px;
+  background: rgba(239, 246, 255, 0.74);
+}
+
+.tender-personnel-reference strong {
+  color: #0f172a;
+}
+
+.tender-personnel-reference-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.tender-personnel-reference-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.tender-personnel-reference-item span {
+  color: #64748b;
+  font-size: 12px;
+}
+
 .dashboard-summary-empty {
   padding: 20px !important;
   color: var(--muted);
