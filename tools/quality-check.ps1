@@ -18,14 +18,23 @@ if ($appText -match "\.on(click|change|input|submit)\s*=" -or $appText -match "\
 }
 
 Write-Host "Ringkasan ukuran file:"
-$files = @($app, $index, $styles)
-foreach ($file in $files) {
+$fileBudgets = @(
+  @{ Path = $app; Warn = 2000; Max = 6500 },
+  @{ Path = $index; Warn = 1500; Max = 3000 },
+  @{ Path = $styles; Warn = 2000; Max = 5000 }
+)
+foreach ($item in $fileBudgets) {
+  $file = $item.Path
   $lineCount = (Get-Content -LiteralPath $file | Measure-Object -Line).Lines
   $name = Split-Path -Leaf $file
-  $status = if ($lineCount -gt 2000) { "PERLU DIPANTAU" } else { "OK" }
+  $status = if ($lineCount -gt $item.Warn) { "PERLU DIPANTAU" } else { "OK" }
   Write-Host ("- {0}: {1} baris ({2})" -f $name, $lineCount, $status)
+  if ($lineCount -gt $item.Max) {
+    throw ("{0} melewati batas maksimum {1} baris. Pecah modul sebelum deploy." -f $name, $item.Max)
+  }
 }
 
 Write-Host "Quality check selesai."
+
 
 
