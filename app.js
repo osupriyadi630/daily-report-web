@@ -368,7 +368,12 @@ function bindControls() {
   document.getElementById("tenderForm").addEventListener("submit", saveTender);
   document.getElementById("closeTenderFormButton").addEventListener("click", closeTenderForm);
   document.getElementById("cancelTenderFormButton").addEventListener("click", closeTenderForm);
-  document.getElementById("tenderName").addEventListener("input", renderTenderPersonnelReferenceFromForm);
+  document.getElementById("tenderName").addEventListener("input", () => {
+    renderTenderPersonnelReferenceFromForm();
+    renderTenderPersonnelMembersFromForm();
+  });
+  document.getElementById("addTenderPersonnelButton").addEventListener("click", addTenderPersonnelFromForm);
+  document.getElementById("tenderPersonnelMembersList").addEventListener("click", handleTenderPersonnelMemberAction);
   document.getElementById("tenderSearch").addEventListener("input", event => {
     state.tenderSearch = event.target.value;
     renderTenders();
@@ -1758,7 +1763,7 @@ function buildJobsFromAllSources() {
       records: [],
       statusOverride: "Tender",
       yearOverride: tender.budgetYear || "",
-      personnelCount: tender.sourcePersonnelCount ?? personnel.length,
+      personnelCount: personnel.length || tender.sourcePersonnelCount || 0,
       tenderId: tender.id,
       sourceType: "tender"
     });
@@ -2708,6 +2713,180 @@ function renderTenderPersonnelReferenceFromForm() {
     </div>
     ${personnel.length > 8 ? `<span>+ ${personnel.length - 8} personil lainnya tersedia di DATA UTAMA.</span>` : ""}
   `;
+}
+
+function normalizeTenderPersonnelMembers(value) {
+  const members = Array.isArray(value) ? value : [];
+  const unique = new Map();
+  members.forEach(member => {
+    const name = String(member?.name || member?.personnelName || "").trim();
+    if (!name) return;
+    const key = normalizeSearchText(name);
+    if (!key || unique.has(key)) return;
+    unique.set(key, createTenderPersonnelRecord({
+      name,
+      position: String(member?.position || member?.personnelPosition || "").trim(),
+      involvement: String(member?.involvement || member?.personnelInvolvement || "").trim(),
+      source: member?.source || "Tambahan"
+    }));
+  });
+  return [...unique.values()];
+}
+
+function createTenderPersonnelRecord(member) {
+  const name = String(member?.name || "").trim();
+  const position = String(member?.position || "").trim();
+  const involvement = String(member?.involvement || "").trim();
+  const source = String(member?.source || "").trim();
+  return {
+    name,
+    position,
+    involvement,
+    source,
+    "NAMA PERSONIL": name,
+    "POSISI/JABATAN (Kontrak)": position,
+    "POSISI/JABATAN": position,
+    "JABATAN": position,
+    "KETERLIBATAN": involvement
+  };
+}
+
+function getTenderPersonnelMembersFromForm() {
+  const input = document.getElementById("tenderPersonnelMembersData");
+  if (!input) return [];
+  try {
+    return normalizeTenderPersonnelMembers(JSON.parse(input.value || "[]"));
+  } catch (error) {
+    input.value = "[]";
+    return [];
+  }
+}
+
+function setTenderPersonnelMembersToForm(members) {
+  const input = document.getElementById("tenderPersonnelMembersData");
+  if (!input) return;
+  input.value = JSON.stringify(normalizeTenderPersonnelMembers(members));
+}
+
+function getTenderManualPersonnelFromLegacyFields(tender) {
+  if (!tender?.personnelName) return [];
+  return normalizeTenderPersonnelMembers([{
+    name: tender.personnelName,
+    position: tender.personnelPosition,
+    involvement: tender.personnelInvolvement
+  }]);
+}
+
+function getTenderReferencePersonnelMembers(name) {
+  return getTenderReferencePersonnelByName(name).map(record => createTenderPersonnelRecord({
+    name: getRecordValue(record, ["nama personil", "nama lengkap", "nama"]) || "-",
+    position: getRecordValue(record, [
+      "posisi/jabatan (kontrak)",
+      "posisi/jabatan",
+      "jabatan",
+      "posisi"
+    ]) || "-",
+    involvement: getRecordValue(record, ["keterlibatan"]) || "-",
+    source: "DATA UTAMA"
+  })).filter(member => member.name && member.name !== "-");
+}
+
+function renderTenderPersonnelMembersFromForm() {
+  const list = document.getElementById("tenderPersonnelMembersList");
+  if (!list) return;
+  const tenderName = document.getElementById("tenderName")?.value || "";
+  const referenceMembers = getTenderReferencePersonnelMembers(tenderName);
+  const manualMembers = getTenderPersonnelMembersFromForm().map((member, index) => ({
+    ...member,
+    source: "Tambahan",
+    index
+  }));
+  const members = [...referenceMembers, ...manualMembers];
+
+  if (!members.length) {
+    list.innerHTML = '<div class="tender-personnel-member-empty">Belum ada personil paket. Isi nama personil di atas lalu klik Masukkan.</div>';
+    return;
+  }
+
+  list.innerHTML = members.map(member => `
+    <article class="tender-personnel-member-item">
+      <div>
+        <strong>${escapeHtml(member.name)}</strong>
+        <span>${escapeHtml(member.position || "-")} · Keterlibatan: ${escapeHtml(member.involvement || "-")}</span>
+      </div>
+      <div class="tender-personnel-member-actions">
+        <span class="tender-personnel-member-source">${escapeHtml(member.source)}</span>
+        ${member.source === "Tambahan"
+          ? `<button class="text-danger-button" type="button" data-remove-tender-personnel="${member.index}">Hapus</button>`
+          : ""}
+      </div>
+    </article>
+  `).join("");
+}
+
+function addTenderPersonnelFromForm() {
+  const nameInput = document.getElementById("tenderPersonnelName");
+  const positionInput = document.getElementById("tenderPersonnelPosition");
+  const involvementInput = document.getElementById("tenderPersonnelInvolvement");
+  const name = nameInput?.value.trim() || "";
+  if (!name) {
+    setTenderFormStatus("Isi Nama Personil terlebih dahulu, lalu klik Masukkan.", "error");
+    nameInput?.focus();
+    return;
+  }
+
+  const members = getTenderPersonnelMembersFromForm();
+  const key = normalizeSearchText(name);
+  const existsInManual = members.some(member => normalizeSearchText(member.name) === key);
+  const existsInReference = getTenderReferencePersonnelMembers(document.getElementById("tenderName")?.value || "")
+    .some(member => normalizeSearchText(member.name) === key);
+  if (existsInManual || existsInReference) {
+    setTenderFormStatus("Personil tersebut sudah ada di daftar paket tender.", "error");
+    return;
+  }
+
+  members.push({
+    name,
+    position: positionInput?.value.trim() || "",
+    involvement: involvementInput?.value || ""
+  });
+  setTenderPersonnelMembersToForm(members);
+  nameInput.value = "";
+  if (positionInput) positionInput.value = "";
+  if (involvementInput) involvementInput.value = "";
+  setTenderFormStatus("Personil ditambahkan ke daftar paket. Klik Simpan Paket untuk menyimpan permanen.", "success");
+  renderTenderPersonnelMembersFromForm();
+}
+
+function handleTenderPersonnelMemberAction(event) {
+  const button = event.target.closest("[data-remove-tender-personnel]");
+  if (!button) return;
+  const index = Number(button.dataset.removeTenderPersonnel);
+  const members = getTenderPersonnelMembersFromForm();
+  if (!Number.isInteger(index) || index < 0 || index >= members.length) return;
+  members.splice(index, 1);
+  setTenderPersonnelMembersToForm(members);
+  setTenderFormStatus("Personil tambahan dihapus dari daftar sementara.", "success");
+  renderTenderPersonnelMembersFromForm();
+}
+
+function collectTenderPersonnelMembersForSave() {
+  const members = getTenderPersonnelMembersFromForm();
+  const pendingName = document.getElementById("tenderPersonnelName")?.value.trim() || "";
+  if (pendingName) {
+    const key = normalizeSearchText(pendingName);
+    const exists = members.some(member => normalizeSearchText(member.name) === key) ||
+      getTenderReferencePersonnelMembers(document.getElementById("tenderName")?.value || "")
+        .some(member => normalizeSearchText(member.name) === key);
+    if (!exists) {
+      members.push({
+        name: pendingName,
+        position: document.getElementById("tenderPersonnelPosition")?.value.trim() || "",
+        involvement: document.getElementById("tenderPersonnelInvolvement")?.value || ""
+      });
+    }
+  }
+  return normalizeTenderPersonnelMembers(members);
 }
 
 function openJobRecordForm(record = null, job = null) {
@@ -4395,10 +4574,15 @@ function openTenderForm(tender = null) {
   document.getElementById("tenderPersonnelName").value = tender?.personnelName || "";
   document.getElementById("tenderPersonnelPosition").value = tender?.personnelPosition || "";
   document.getElementById("tenderPersonnelInvolvement").value = tender?.personnelInvolvement || "";
+  setTenderPersonnelMembersToForm([
+    ...normalizeTenderPersonnelMembers(tender?.personnelMembers),
+    ...getTenderManualPersonnelFromLegacyFields(tender)
+  ]);
   document.getElementById("tenderDriveUrl").value = tender?.driveUrl || state.appConfig?.driveUrl || "";
   document.getElementById("tenderNotes").value = tender?.notes || "";
   renderTenderPersonnelSuggestions();
   renderTenderPersonnelReferenceFromForm();
+  renderTenderPersonnelMembersFromForm();
   document.getElementById("tenderFormModal").showModal();
 }
 
@@ -4412,6 +4596,12 @@ async function saveTender(event) {
 
   const tenderId = document.getElementById("tenderId").value;
   const existing = state.tenders.find(item => item.id === tenderId);
+  const personnelMembers = collectTenderPersonnelMembersForSave();
+  const primaryPersonnel = personnelMembers[0] || {
+    name: document.getElementById("tenderPersonnelName").value.trim(),
+    position: document.getElementById("tenderPersonnelPosition").value.trim(),
+    involvement: document.getElementById("tenderPersonnelInvolvement").value
+  };
   const payload = {
     entityType: "tender",
     name: document.getElementById("tenderName").value.trim(),
@@ -4427,9 +4617,10 @@ async function saveTender(event) {
     status: document.getElementById("tenderStatus").value,
     owner: document.getElementById("tenderOwner").value.trim(),
     ownerEmail: normalizeEmail(document.getElementById("tenderOwnerEmail").value),
-    personnelName: document.getElementById("tenderPersonnelName").value.trim(),
-    personnelPosition: document.getElementById("tenderPersonnelPosition").value.trim(),
-    personnelInvolvement: document.getElementById("tenderPersonnelInvolvement").value,
+    personnelName: primaryPersonnel.name || "",
+    personnelPosition: primaryPersonnel.position || "",
+    personnelInvolvement: primaryPersonnel.involvement || "",
+    personnelMembers,
     driveUrl: document.getElementById("tenderDriveUrl").value.trim(),
     notes: document.getElementById("tenderNotes").value.trim(),
     documents: createTenderChecklist(existing?.documents),
@@ -4492,6 +4683,7 @@ async function deleteSelectedTender() {
 
 function renderTenderDetail(tender) {
   const progress = getTenderProgress(tender);
+  const tenderPersonnel = getTenderPersonnel(tender);
   document.getElementById("tenderDetailStatus").textContent = tender.status || "Persiapan";
   document.getElementById("tenderDetailTitle").textContent = tender.name || "Paket Tender";
   document.getElementById("tenderDetailMeta").textContent =
@@ -4507,7 +4699,7 @@ function renderTenderDetail(tender) {
     ["Metode Seleksi", escapeHtml(tender.method || "-")],
     ["Jenis Kontrak", escapeHtml(tender.contractType || "-")],
     ["Status DATA UTAMA", escapeHtml(tender.sourceStatus || "-")],
-    ["Jumlah Personil", escapeHtml(String(tender.sourcePersonnelCount ?? "-"))],
+    ["Jumlah Personil", escapeHtml(String(tenderPersonnel.length || tender.sourcePersonnelCount || "-"))],
     ["Deadline", escapeHtml(formatTenderDateTime(tender.deadline))],
     ["Penanggung Jawab", escapeHtml(tender.owner || "-")],
     ["Nama Personil", escapeHtml(tender.personnelName || "-")],
@@ -4579,7 +4771,31 @@ function formatTenderDateTime(value) {
 }
 
 function getTenderPersonnel(tender) {
-  return getTenderReferencePersonnelByName(tender?.sourceJobKey || tender?.name);
+  const references = getTenderReferencePersonnelMembers(tender?.sourceJobKey || tender?.name);
+  const manual = [
+    ...normalizeTenderPersonnelMembers(tender?.personnelMembers),
+    ...getTenderManualPersonnelFromLegacyFields(tender)
+  ];
+  const unique = new Map();
+
+  [...references, ...manual].forEach(member => {
+    const record = createTenderPersonnelRecord({
+      name: member?.name || getRecordValue(member, ["nama personil", "nama lengkap", "nama"]),
+      position: member?.position || getRecordValue(member, [
+        "posisi/jabatan (kontrak)",
+        "posisi/jabatan",
+        "jabatan",
+        "posisi"
+      ]),
+      involvement: member?.involvement || getRecordValue(member, ["keterlibatan"]),
+      source: member?.source || "Tambahan"
+    });
+    const key = normalizeSearchText(record.name);
+    if (!key || unique.has(key)) return;
+    unique.set(key, record);
+  });
+
+  return [...unique.values()];
 }
 
 function buildTenderTemplate(tender, type) {

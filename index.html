@@ -1285,6 +1285,17 @@
             <option value="TIDAK">TIDAK</option>
           </select>
         </label>
+        <section class="tender-personnel-members full" aria-label="Personil paket tender">
+          <input id="tenderPersonnelMembersData" type="hidden" value="[]">
+          <div class="tender-personnel-members-header">
+            <div>
+              <strong>Personil Paket Tender</strong>
+              <span>Masukkan isian personil di atas ke daftar paket sebelum menyimpan.</span>
+            </div>
+            <button class="secondary-button compact-button" id="addTenderPersonnelButton" type="button">+ Masukkan</button>
+          </div>
+          <div class="tender-personnel-member-list" id="tenderPersonnelMembersList"></div>
+        </section>
         <section class="tender-personnel-reference full" id="tenderPersonnelReference" aria-live="polite"></section>
         <label class="full">Tautan Folder Dokumen
           <input id="tenderDriveUrl" type="url" placeholder="https://drive.google.com/...">
