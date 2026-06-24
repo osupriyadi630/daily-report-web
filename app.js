@@ -307,7 +307,8 @@ function bindControls() {
   document.getElementById("personnelTableBody").addEventListener("click", handlePersonnelTableClick);
   document.getElementById("dashboardActivePersonnelBody").addEventListener("click", handleDashboardPersonnelClick);
   document.getElementById("dashboardInactivePersonnelBody").addEventListener("click", handleDashboardPersonnelClick);
-  document.getElementById("dashboardAddItemButton").addEventListener("click", openTaskModal);
+  document.getElementById("dashboardAddItemButton").addEventListener("click", () => openJobRecordForm());
+  document.getElementById("dashboardTaskAddButton").addEventListener("click", openTaskModal);
   document.getElementById("dashboardOpenPortfolioButton").addEventListener("click", () => setView("jobs"));
   document.getElementById("dashboardPortfolioSummary").addEventListener("click", handlePortfolioSummaryClick);
   document.getElementById("dashboardFeaturedJobs").addEventListener("click", handleDashboardPortfolioCardClick);
@@ -797,6 +798,7 @@ function renderAccessControl() {
   const canCreate = canCreateTask();
   document.getElementById("newTaskButton").classList.toggle("hidden", !canCreate);
   document.getElementById("newTaskButtonTable").classList.toggle("hidden", !canCreate);
+  document.getElementById("dashboardTaskAddButton").classList.toggle("hidden", !canCreate);
   document.getElementById("sendAllButton").classList.toggle("hidden", !canSendReminders());
   document.getElementById("sendSelectedButton").classList.toggle("hidden", !canSendReminders());
   document.getElementById("createReportButton").classList.toggle("hidden", !canCreateReports());
@@ -1449,8 +1451,15 @@ async function loadExternalSheetData() {
   externalSheetLastLoadedAt = Date.now();
   await syncTenderJobsFromDataUtama();
   renderExternalSheetStatus();
+  renderPersonnelNameSuggestions();
+  renderStats();
+  renderTasks();
+  renderFocusList();
+  renderAgenda();
+  renderLocalAI();
   renderPersonnel();
   renderJobs();
+  renderTenders();
   renderDashboardPortfolioHome();
   renderDashboardWorkSummary();
 }
@@ -2580,6 +2589,9 @@ function getEditableJobColumns(records) {
 function renderJobRecordInput(column, value) {
   const normalized = normalizeSearchText(column);
   const escapedValue = escapeHtml(value || "");
+  if (includesAny(normalized, ["nama personil", "nama lengkap"])) {
+    return `<input name="${escapeHtml(column)}" value="${escapedValue}" list="personnelNameSuggestions" autocomplete="off" placeholder="Ketik nama personil dari Bemaco atau Outsourcing">`;
+  }
   if (normalized === "keterlibatan") {
     return `
       <select name="${escapeHtml(column)}">
@@ -2604,6 +2616,27 @@ function renderJobRecordInput(column, value) {
     `;
   }
   return `<input name="${escapeHtml(column)}" value="${escapedValue}" autocomplete="off">`;
+}
+
+function getPersonnelNameSuggestions() {
+  const names = new Map();
+  ["personil-bmc", "outsourcing"].forEach(sourceId => {
+    const sheet = getPersonnelSheet(sourceId);
+    if (!sheet || sheet.status !== "ready") return;
+    sheet.records.forEach(record => {
+      const name = getRecordValue(record, ["nama personil", "nama lengkap", "nama"]);
+      const key = canonicalPersonnelName(name) || normalizeSearchText(name);
+      if (name && key && !names.has(key)) names.set(key, name);
+    });
+  });
+  return [...names.values()].sort((left, right) => left.localeCompare(right, "id"));
+}
+
+function renderPersonnelNameSuggestions() {
+  const list = document.getElementById("personnelNameSuggestions");
+  if (!list) return;
+  const names = getPersonnelNameSuggestions();
+  list.innerHTML = names.map(name => `<option value="${escapeHtml(name)}"></option>`).join("");
 }
 
 function openJobRecordForm(record = null, job = null) {
@@ -2636,6 +2669,7 @@ function openJobRecordForm(record = null, job = null) {
   document.getElementById("jobRecordRowNumber").value = record?.["_Sumber Baris"] || "";
   document.getElementById("jobRecordFormStatus").textContent = "";
   document.getElementById("jobRecordFormFields").innerHTML = `
+    <datalist id="personnelNameSuggestions"></datalist>
     <datalist id="jobStatusOptions">
       <option value="Upcoming">
       <option value="Active">
@@ -2650,6 +2684,7 @@ function openJobRecordForm(record = null, job = null) {
       </label>
     `).join("")}
   `;
+  renderPersonnelNameSuggestions();
   document.getElementById("jobRecordFormFields")
     .querySelector(`[name="${CSS.escape(jobColumn)}"]`)
     ?.setAttribute("required", "");

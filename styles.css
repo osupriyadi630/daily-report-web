@@ -164,27 +164,19 @@ button { cursor: pointer; }
 .brand-row.compact {
   position: relative;
   align-items: center;
-  justify-content: center;
-  min-width: 310px;
-  min-height: 50px;
-  padding: 6px 16px 6px 20px;
-  overflow: hidden;
-  border: 1px solid rgba(191, 219, 254, 0.92);
-  border-radius: 14px;
-  background:
-    linear-gradient(90deg, rgba(37, 99, 235, 0.88) 0 7px, transparent 7px),
-    linear-gradient(90deg, #ffffff 0%, #dbeafe 31%, #eff6ff 64%, #fecaca 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 12px 28px rgba(15, 23, 42, 0.2);
+  justify-content: flex-start;
+  min-width: 300px;
+  min-height: 54px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .brand-row.compact::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: 7px;
-  background: rgba(220, 38, 38, 0.9);
+  content: none;
 }
 
 .brand-mark {
@@ -203,11 +195,12 @@ button { cursor: pointer; }
   position: relative;
   z-index: 1;
   display: block;
-  width: clamp(220px, 16vw, 285px);
-  height: 42px;
+  width: clamp(250px, 17vw, 320px);
+  height: 56px;
   object-fit: contain;
-  object-position: center;
+  object-position: left center;
   flex: 0 0 auto;
+  filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.24));
 }
 
 .auth-form {
@@ -1948,8 +1941,8 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 
 .portfolio-featured-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
 }
 
 .portfolio-job-card {
@@ -2333,10 +2326,13 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 .portfolio-workspace-shell .portfolio-section-heading h2 { margin: 0 0 2px; font-size: 16px; }
 .portfolio-workspace-shell .portfolio-section-heading p { font-size: 11px; }
 
-.portfolio-workspace-shell .portfolio-featured-grid { gap: 10px; }
+.portfolio-workspace-shell .portfolio-featured-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+}
 
 .portfolio-workspace-shell .portfolio-job-card {
-  min-height: 152px;
+  min-height: 138px;
   padding: 17px 14px 13px;
   border-radius: 7px;
   box-shadow: none;
@@ -2487,8 +2483,7 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin: 4px 0 14px;
-  padding-top: 4px;
+  gap: 14px;
 }
 
 .dashboard-operational-heading h2 {
@@ -2505,6 +2500,56 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 
 .portfolio-summary-hint {
   margin-top: 12px;
+}
+
+.dashboard-task-workspace {
+  margin-top: 18px;
+}
+
+.dashboard-task-workspace .stats-grid {
+  margin: 14px 0 14px;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.dashboard-task-workspace .stat-card {
+  min-height: 86px;
+  border-color: rgba(147, 197, 253, 0.55);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: none;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.dashboard-task-workspace .stat-card:hover {
+  transform: translateY(-3px);
+  border-color: #60a5fa;
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-task-workspace .content-grid {
+  grid-template-columns: minmax(0, 1fr) 330px;
+  align-items: start;
+}
+
+.dashboard-task-workspace .board {
+  min-width: 0;
+}
+
+.dashboard-task-workspace .column,
+.dashboard-task-workspace .right-panel > .toolbar,
+.dashboard-task-workspace .right-panel > .panel {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.dashboard-task-workspace .task-card {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.dashboard-task-workspace .task-card:hover {
+  transform: translateY(-3px);
+  border-color: #93c5fd;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
 }
 
 .jobs-panel {
@@ -3577,13 +3622,13 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     gap: 12px;
   }
   .brand-row.compact {
-    min-width: 260px;
-    min-height: 46px;
+    min-width: 240px;
+    min-height: 48px;
     gap: 9px;
-    padding: 6px 14px 6px 18px;
+    padding: 0;
   }
   .brand-row.compact .brand-mark { width: 38px; height: 38px; }
-  .brand-company-logos { width: 220px; height: 38px; }
+  .brand-company-logos { width: 240px; height: 48px; }
   .nav { justify-content: flex-start; overflow-x: auto; }
   .nav-item { min-width: 76px; min-height: 50px; padding-inline: 9px; font-size: 12px; }
   .main {
@@ -3618,8 +3663,8 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .settings-grid { grid-template-columns: 1fr; }
   .portfolio-overview { grid-template-columns: 1fr; }
   .portfolio-bento-top { grid-template-columns: 1fr; }
-  .portfolio-featured-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .portfolio-featured-grid .portfolio-job-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .portfolio-featured-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .portfolio-featured-grid .portfolio-job-card:last-child:nth-child(odd) { grid-column: auto; }
 }
 
 @media (max-width: 760px) {
@@ -3657,10 +3702,10 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 
   .brand-row.compact {
     min-width: 0;
-    width: min(50vw, 260px);
-    min-height: 46px;
+    width: min(48vw, 248px);
+    min-height: 44px;
     align-items: center;
-    padding: 6px 12px 6px 16px;
+    padding: 0;
   }
 
   .brand-row.compact .brand-mark {
@@ -3672,8 +3717,8 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 
   .brand-company-logos {
     width: 100%;
-    max-width: 220px;
-    height: 42px;
+    max-width: 230px;
+    height: 44px;
   }
 
   .nav {
@@ -3732,6 +3777,9 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   .portfolio-agenda-item small { grid-column: 2; text-align: left; }
   .dashboard-bento-home { margin-bottom: 18px; }
   .dashboard-operational-heading { margin-top: 0; }
+  .dashboard-task-workspace .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-task-workspace .content-grid { grid-template-columns: 1fr; }
+  .dashboard-task-workspace .portfolio-add-button { width: 100%; }
   .personnel-search { grid-column: 1 / -1; }
   .personnel-table-wrap { border: 0; overflow: visible; }
   .personnel-table { display: block; min-width: 0; background: transparent; }
@@ -4170,10 +4218,10 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 
 @media (max-width: 390px) {
   .brand-row.compact {
-    width: min(52vw, 212px);
-    padding-inline: 13px 10px;
+    width: min(50vw, 210px);
+    padding-inline: 0;
   }
-  .brand-company-logos { width: 100%; max-width: 182px; }
+  .brand-company-logos { width: 100%; max-width: 198px; }
   .nav-item { font-size: 10px; }
   .topbar { grid-template-columns: 1fr; top: 0; }
   .topbar .top-actions { grid-template-columns: minmax(0, 1fr) auto; }
