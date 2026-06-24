@@ -5764,7 +5764,8 @@ function previewTask(id) {
   `;
   const sendButton = document.getElementById("previewSendButton");
   sendButton.classList.toggle("hidden", !canSendReminders());
-  sendButton.onclick = () => sendTaskEmail(task.id);
+  sendButton.replaceWith(sendButton.cloneNode(true));
+  document.getElementById("previewSendButton").addEventListener("click", () => sendTaskEmail(task.id));
   document.getElementById("previewModal").showModal();
 }
 
@@ -6029,4 +6030,5 @@ function safeClassToken(value, fallback = "neutral") {
     .replace(/^-+|-+$/g, "");
   return token || fallback;
 }
+
 
