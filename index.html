@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8">
@@ -116,31 +116,31 @@
       <nav class="nav">
         <button class="nav-item active" data-view="dashboard">
           <span>Dashboard</span>
-          <span class="nav-icon" aria-hidden="true"><i data-lucide="layout-dashboard"></i><span class="nav-icon-fallback">▦</span></span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="layout-dashboard"></i><span class="nav-icon-fallback">â–¦</span></span>
         </button>
         <button class="nav-item" data-view="tenders">
           <span>Tender</span>
-          <span class="nav-icon" aria-hidden="true"><i data-lucide="clipboard-check"></i><span class="nav-icon-fallback">✓</span></span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="clipboard-check"></i><span class="nav-icon-fallback">âœ“</span></span>
         </button>
         <button class="nav-item" data-view="jobs">
           <span>Portofolio</span>
-          <span class="nav-icon" aria-hidden="true"><i data-lucide="briefcase-business"></i><span class="nav-icon-fallback">◇</span></span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="briefcase-business"></i><span class="nav-icon-fallback">â—‡</span></span>
         </button>
         <button class="nav-item" data-view="personnel">
           <span>Personil</span>
-          <span class="nav-icon" aria-hidden="true"><i data-lucide="users"></i><span class="nav-icon-fallback">♙</span></span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="users"></i><span class="nav-icon-fallback">â™™</span></span>
         </button>
         <button class="nav-item" data-view="tasks">
           <span>Tugas</span>
-          <span class="nav-icon" aria-hidden="true"><i data-lucide="list-checks"></i><span class="nav-icon-fallback">≡</span></span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="list-checks"></i><span class="nav-icon-fallback">â‰¡</span></span>
         </button>
         <button class="nav-item" data-view="reports">
           <span>Laporan</span>
-          <span class="nav-icon" aria-hidden="true"><i data-lucide="chart-no-axes-combined"></i><span class="nav-icon-fallback">▥</span></span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="chart-no-axes-combined"></i><span class="nav-icon-fallback">â–¥</span></span>
         </button>
         <button class="nav-item" id="settingsNavButton" data-view="settings">
           <span>Pengaturan</span>
-          <span class="nav-icon" aria-hidden="true"><i data-lucide="settings"></i><span class="nav-icon-fallback">⚙</span></span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="settings"></i><span class="nav-icon-fallback">âš™</span></span>
         </button>
       </nav>
       <div class="sidebar-profile-wrap">
@@ -718,19 +718,147 @@
         </section>
       </section>
 
-      <section id="reportsView" class="view">
-        <section class="panel">
-          <div class="section-header">
+      <section id="reportsView" class="view reports-workspace-view">
+        <section class="reports-hero panel">
+          <div class="section-header reports-hero-header">
             <div>
-              <h2>Laporan</h2>
-              <p>Riwayat laporan harian tersimpan di browser sesi ini.</p>
+              <span class="section-eyebrow">PUSAT DOKUMEN DAN REKAP</span>
+              <h2>Laporan Workspace</h2>
+              <p>Membuat, memfilter, mem-preview, dan mengekspor laporan dari tugas, tender, portofolio, personil, dan pekerjaan.</p>
             </div>
             <button class="primary-button" id="createReportButtonReports">Buat Laporan Hari Ini</button>
           </div>
-          <div id="reportsList" class="report-list"></div>
+          <div class="reports-summary-grid" aria-label="Ringkasan laporan">
+            <article class="reports-stat-card">
+              <span>Laporan hari ini</span>
+              <strong id="reportsStatToday">0</strong>
+              <small>draft siap dicek</small>
+            </article>
+            <article class="reports-stat-card green">
+              <span>Selesai</span>
+              <strong id="reportsStatDone">0</strong>
+              <small>aktivitas tercatat</small>
+            </article>
+            <article class="reports-stat-card red">
+              <span>Terlambat</span>
+              <strong id="reportsStatLate">0</strong>
+              <small>butuh tindak lanjut</small>
+            </article>
+            <article class="reports-stat-card blue">
+              <span>Tender</span>
+              <strong id="reportsStatTender">0</strong>
+              <small>paket dipantau</small>
+            </article>
+            <article class="reports-stat-card purple">
+              <span>Personil aktif</span>
+              <strong id="reportsStatPersonnel">0</strong>
+              <small>terlibat proyek</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="reports-layout">
+          <article class="panel reports-generator-panel">
+            <div class="section-header">
+              <div>
+                <h2>Generator Laporan</h2>
+                <p>Pilih jenis, periode, sumber data, dan filter sebelum export.</p>
+              </div>
+            </div>
+            <div class="reports-form-grid">
+              <label>Jenis laporan
+                <select id="reportsType">
+                  <option value="daily">Laporan Harian</option>
+                  <option value="progress">Laporan Progres Pekerjaan</option>
+                  <option value="tender">Laporan Tender</option>
+                  <option value="personnel">Laporan Personil</option>
+                  <option value="portfolio">Laporan Portofolio</option>
+                </select>
+              </label>
+              <label>Tanggal awal
+                <input id="reportsStartDate" type="date">
+              </label>
+              <label>Tanggal akhir
+                <input id="reportsEndDate" type="date">
+              </label>
+              <label>Sumber data
+                <select id="reportsSource">
+                  <option value="all">Tugas, Tender, Personil, Portofolio</option>
+                  <option value="tasks">Tugas</option>
+                  <option value="jobs">Pekerjaan / Portofolio</option>
+                  <option value="tenders">Tender</option>
+                  <option value="personnel">Personil</option>
+                </select>
+              </label>
+              <label>Status pekerjaan
+                <select id="reportsStatus">
+                  <option value="all">Semua status</option>
+                  <option value="active">Aktif / Ongoing</option>
+                  <option value="finish">Finish</option>
+                  <option value="tender">Tender</option>
+                  <option value="upcoming">Upcoming</option>
+                </select>
+              </label>
+              <label>Personil
+                <select id="reportsPerson">
+                  <option value="all">Semua personil</option>
+                </select>
+              </label>
+            </div>
+            <div class="reports-actions">
+              <button class="primary-button" id="reportsGenerateButton">Generate Preview</button>
+              <button class="secondary-button" id="reportsResetButton">Reset Filter</button>
+            </div>
+          </article>
+
+          <aside class="reports-side-stack">
+            <article class="panel reports-template-panel">
+              <h2>Template Cepat</h2>
+              <p>Pilih format laporan yang sering dipakai.</p>
+              <div class="reports-template-list">
+                <button type="button" data-report-template="daily">Harian</button>
+                <button type="button" data-report-template="progress">Progres Pekerjaan</button>
+                <button type="button" data-report-template="tender">Tender</button>
+                <button type="button" data-report-template="personnel">Personil</button>
+                <button type="button" data-report-template="portfolio">Portofolio</button>
+              </div>
+            </article>
+            <article class="panel reports-export-panel">
+              <h2>Export</h2>
+              <p>Preview laporan dapat dikirim ke format dokumen.</p>
+              <div class="reports-export-actions">
+                <button class="secondary-button" id="reportsExportPdf">PDF</button>
+                <button class="secondary-button" id="reportsExportExcel">Excel</button>
+                <button class="secondary-button" id="reportsExportCsv">CSV</button>
+                <button class="secondary-button" id="reportsPrint">Print</button>
+              </div>
+            </article>
+          </aside>
+        </section>
+
+        <section class="reports-preview-history-grid">
+          <article class="panel reports-preview-panel">
+            <div class="section-header">
+              <div>
+                <h2 id="reportsPreviewTitle">Preview Laporan Harian</h2>
+                <p>Ringkasan otomatis sebelum export.</p>
+              </div>
+            </div>
+            <div id="reportsWorkspacePreview" class="reports-preview-grid"></div>
+            <p class="reports-standard-note">Layout responsif, kontras teks aman, aksi utama jelas, preview sebelum export, dan data dipisahkan dari tampilan agar mudah dirawat.</p>
+          </article>
+
+          <article class="panel reports-history-panel">
+            <div class="section-header">
+              <div>
+                <h2>Riwayat Laporan</h2>
+                <p>Laporan yang dibuat pada sesi browser ini.</p>
+              </div>
+            </div>
+            <div id="reportsList" class="report-list"></div>
+          </article>
         </section>
       </section>
-
       <section id="tendersView" class="view">
         <section class="tender-stats-grid">
           <article class="stat-card"><span>Total Paket</span><strong id="tenderStatTotal">0</strong></article>
@@ -1262,7 +1390,7 @@
         </label>
         <label>Penanggung Jawab
           <span class="input-search-group">
-            <span class="input-search-icon" aria-hidden="true">⌕</span>
+            <span class="input-search-icon" aria-hidden="true">âŒ•</span>
             <input id="tenderOwner" list="tenderPersonnelNameSuggestions" autocomplete="off" placeholder="Cari nama PIC/tim">
           </span>
         </label>
@@ -1271,7 +1399,7 @@
         </label>
         <label>Nama Personil
           <span class="input-search-group">
-            <span class="input-search-icon" aria-hidden="true">⌕</span>
+            <span class="input-search-icon" aria-hidden="true">âŒ•</span>
             <input id="tenderPersonnelName" list="tenderPersonnelNameSuggestions" autocomplete="off" placeholder="Cari dari Personil Bemaco/Outsourcing">
           </span>
         </label>
@@ -1353,3 +1481,4 @@
   <script type="module" src="app.js?v=20260624123500"></script>
 </body>
 </html>
+
