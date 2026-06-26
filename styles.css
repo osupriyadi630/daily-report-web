@@ -4535,8 +4535,11 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 }
 
 .reports-workspace-view {
-  display: grid;
   gap: 16px;
+}
+
+.view.active.reports-workspace-view {
+  display: grid;
 }
 
 .reports-hero {
@@ -4718,3 +4721,4 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     width: 100%;
   }
 }
+
