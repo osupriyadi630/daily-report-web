@@ -97,6 +97,7 @@ let currentJobDetail = null;
 let jobDetailResizeObserver = null;
 let tenderJobSyncInProgress = false;
 let lastTenderJobSignature = "";
+const EXTERNAL_SHEET_CACHE_KEY = "asisten-harian.externalSheets.cache.v1";
 
 const DEFAULT_EXTERNAL_SHEET_SOURCES = [
   {
@@ -1839,13 +1840,16 @@ async function loadExternalSheetData() {
     }
   }
 
+  const cachedSheets = loadExternalSheetCache();
   const results = await Promise.all(loadingSheets.map(async sheet => {
     if (Array.isArray(bridgeRecords[sheet.id])) {
+      saveExternalSheetCache(sheet.id, bridgeRecords[sheet.id]);
       return {
         ...sheet,
         records: bridgeRecords[sheet.id],
         status: "ready",
-        error: ""
+        error: "",
+        source: "bridge"
       };
     }
     try {
@@ -1856,19 +1860,33 @@ async function loadExternalSheetData() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const csvText = await response.text();
       if (!csvText.trim()) throw new Error("Data kosong");
+      const records = csvToRecords(csvText);
+      saveExternalSheetCache(sheet.id, records);
       return {
         ...sheet,
-        records: csvToRecords(csvText),
+        records,
         status: "ready",
-        error: ""
+        error: "",
+        source: "csv"
       };
     } catch (error) {
       if (Array.isArray(bridgeRecords[sheet.id])) {
+        saveExternalSheetCache(sheet.id, bridgeRecords[sheet.id]);
         return {
           ...sheet,
           records: bridgeRecords[sheet.id],
           status: "ready",
-          error: ""
+          error: "",
+          source: "bridge"
+        };
+      }
+      if (Array.isArray(cachedSheets[sheet.id]?.records) && cachedSheets[sheet.id].records.length) {
+        return {
+          ...sheet,
+          records: cachedSheets[sheet.id].records,
+          status: "ready",
+          error: `Memakai cadangan lokal karena sumber utama gagal: ${error?.message || "Gagal memuat data"}`,
+          source: "cache"
         };
       }
       return {
@@ -1894,6 +1912,28 @@ async function loadExternalSheetData() {
   renderTenders();
   renderDashboardPortfolioHome();
   renderDashboardWorkSummary();
+}
+
+function loadExternalSheetCache() {
+  try {
+    return JSON.parse(localStorage.getItem(EXTERNAL_SHEET_CACHE_KEY) || "{}");
+  } catch (error) {
+    return {};
+  }
+}
+
+function saveExternalSheetCache(sheetId, records) {
+  if (!sheetId || !Array.isArray(records)) return;
+  try {
+    const cache = loadExternalSheetCache();
+    cache[sheetId] = {
+      records,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(EXTERNAL_SHEET_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.warn("Cache sheet eksternal gagal disimpan:", error);
+  }
 }
 
 function loadPersonnelBridgeData() {
@@ -2022,7 +2062,7 @@ function renderExternalSheetStatus() {
 
   container.innerHTML = state.externalSheets.map(sheet => {
     const statusLabel = sheet.status === "ready"
-      ? `${sheet.records.length} data`
+      ? `${sheet.records.length} data${sheet.source ? ` · ${sheet.source}` : ""}`
       : sheet.status === "loading"
         ? "Memuat..."
         : sheet.status === "error"
