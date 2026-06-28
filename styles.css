@@ -802,6 +802,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .sidebar-brand-title {
+  display: none;
   color: #087384;
   font-size: 18px;
   font-weight: 900;
@@ -810,8 +811,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .sidebar-brand-logo {
-  width: 72px;
-  height: 34px;
+  width: 150px;
+  height: 46px;
   object-fit: contain;
   object-position: left center;
   filter: none;
@@ -937,8 +938,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 .dashboard-kpi-copy em {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
   overflow: hidden;
-  color: var(--kpi-color, #087d8f);
+  border: 1px solid color-mix(in srgb, var(--kpi-color, #087d8f) 32%, transparent);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--kpi-color, #087d8f) 14%, #111827);
+  color: color-mix(in srgb, var(--kpi-color, #087d8f) 72%, #ffffff);
   font-size: 11px;
   font-style: normal;
   font-weight: 800;
@@ -971,6 +979,23 @@ input:focus, select:focus, textarea:focus {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.dashboard-card-header .text-button {
+  border: 1px solid rgba(8, 125, 143, 0.18);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.86));
+  color: #34d399;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-card-header .text-button:hover {
+  color: #67e8f9;
+  transform: translateY(-1px);
 }
 
 .dashboard-card-header h3 {
@@ -1040,10 +1065,11 @@ input:focus, select:focus, textarea:focus {
 
 .dashboard-task-row em,
 .dashboard-reminder-row em {
-  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 8px;
   padding: 6px 9px;
-  background: #f1f5f9;
-  color: #475569;
+  background: #111827;
+  color: #34d399;
   font-size: 11px;
   font-style: normal;
   font-weight: 800;
@@ -1051,18 +1077,21 @@ input:focus, select:focus, textarea:focus {
 
 .dashboard-task-row .urgency-late,
 .dashboard-reminder-row em {
-  background: #fee2e2;
-  color: #b91c1c;
+  border-color: rgba(248, 113, 113, 0.24);
+  background: #261316;
+  color: #fb7185;
 }
 
 .dashboard-task-row .urgency-today {
-  background: #ffedd5;
-  color: #c2410c;
+  border-color: rgba(251, 191, 36, 0.24);
+  background: #251a08;
+  color: #fbbf24;
 }
 
 .dashboard-task-row .urgency-high {
-  background: #dbeafe;
-  color: #1d4ed8;
+  border-color: rgba(34, 211, 238, 0.24);
+  background: #082027;
+  color: #22d3ee;
 }
 
 .dashboard-card-footer-button {
@@ -1137,23 +1166,26 @@ input:focus, select:focus, textarea:focus {
 .dashboard-status-pill,
 .dashboard-priority-badge {
   display: inline-flex;
-  border-radius: 6px;
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 8px;
   padding: 6px 8px;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: #0f172a;
+  color: #22d3ee;
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .dashboard-priority-badge.priority-tinggi {
-  background: #fee2e2;
-  color: #b91c1c;
+  border-color: rgba(251, 113, 133, 0.28);
+  background: #2a1116;
+  color: #fb7185;
 }
 
 .dashboard-priority-badge.priority-sedang {
-  background: #fef3c7;
-  color: #b45309;
+  border-color: rgba(251, 191, 36, 0.28);
+  background: #291d09;
+  color: #fbbf24;
 }
 
 .dashboard-progress-line {
@@ -1326,7 +1358,13 @@ input:focus, select:focus, textarea:focus {
   }
 
   .app-shell::before {
-    content: none;
+    content: "";
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    background:
+      linear-gradient(rgba(247, 249, 252, 0.78), rgba(247, 249, 252, 0.9)),
+      url("assets/construction-dashboard-bg.webp") center center / cover no-repeat;
   }
 
   .sidebar {
@@ -1345,13 +1383,13 @@ input:focus, select:focus, textarea:focus {
   .brand-row.compact {
     min-width: 0;
     min-height: 44px;
-    gap: 13px;
+    gap: 12px;
     padding: 0 4px 18px;
   }
 
   .brand-row.compact .sidebar-brand-logo {
-    width: 72px;
-    height: 34px;
+    width: 164px;
+    height: 52px;
   }
 
   .nav {
@@ -1411,7 +1449,7 @@ input:focus, select:focus, textarea:focus {
     margin-top: 0;
     margin-left: 270px;
     padding: 0 30px 30px;
-    background: #f7f9fc;
+    background: transparent;
   }
 
   .topbar {
@@ -4479,6 +4517,10 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   }
   .brand-row.compact .brand-mark { width: 38px; height: 38px; }
   .brand-company-logos { width: 240px; height: 48px; }
+  .brand-row.compact .sidebar-brand-logo {
+    width: 142px;
+    height: 44px;
+  }
   .nav { justify-content: flex-start; overflow-x: auto; }
   .nav-item { min-width: 76px; min-height: 50px; padding-inline: 9px; font-size: 12px; }
   .main {
@@ -4585,6 +4627,12 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     width: 100%;
     max-width: 230px;
     height: 44px;
+  }
+
+  .brand-row.compact .sidebar-brand-logo {
+    width: min(42vw, 142px);
+    max-width: 142px;
+    height: 40px;
   }
 
   .nav {
