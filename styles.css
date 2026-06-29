@@ -4714,8 +4714,11 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 
   .portfolio-mobile-table {
     display: grid;
+    max-height: 360px;
     overflow-x: auto;
+    overflow-y: auto;
     background: #ffffff;
+    overscroll-behavior: contain;
   }
 
   .portfolio-mobile-head,
@@ -4727,12 +4730,16 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   }
 
   .portfolio-mobile-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     padding: 10px 12px;
     border-bottom: 1px solid #dbe3ee;
     background: #f8fafc;
     color: #1f2937;
     font-size: 11px;
     font-weight: 900;
+    text-align: center;
   }
 
   .portfolio-mobile-row {
@@ -4752,6 +4759,27 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .portfolio-mobile-head span:first-child,
+  .portfolio-mobile-row > strong:first-child {
+    text-align: left;
+  }
+
+  .portfolio-mobile-head span:not(:first-child),
+  .portfolio-mobile-row > span {
+    justify-self: center;
+    text-align: center;
+  }
+
+  .portfolio-mobile-row > span:nth-child(2) {
+    width: 100%;
+  }
+
+  .portfolio-mobile-row > span:last-child {
+    display: inline-flex;
+    justify-content: center;
+    gap: 4px;
   }
 
   .portfolio-mobile-status {
@@ -4803,39 +4831,6 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
     color: #ffffff;
     font-size: 11px;
     font-weight: 900;
-  }
-
-  .portfolio-mobile-row button + button {
-    margin-left: 4px;
-  }
-
-  .portfolio-mobile-tabs {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    border-top: 2px solid #dbe3ee;
-    background: #ffffff;
-  }
-
-  .portfolio-mobile-tabs button {
-    display: grid;
-    min-height: 68px;
-    place-items: center;
-    gap: 4px;
-    border: 0;
-    background: transparent;
-    color: #7890b5;
-    font-size: 11px;
-    font-weight: 900;
-  }
-
-  .portfolio-mobile-tabs button.active {
-    color: #0f5ec8;
-    box-shadow: inset 0 -4px 0 #0f5ec8;
-  }
-
-  .portfolio-mobile-tabs svg {
-    width: 24px;
-    height: 24px;
   }
 
   .portfolio-mobile-empty {

@@ -3011,12 +3011,6 @@ function renderJobsMobileCards(visibleJobs, startIndex) {
             </div>
           `}
         </div>
-        <nav class="portfolio-mobile-tabs" aria-label="Navigasi portofolio mobile">
-          <button type="button" data-dashboard-open="personnel"><i data-lucide="home" aria-hidden="true"></i><span>Kontak</span></button>
-          <button type="button" class="active"><i data-lucide="users" aria-hidden="true"></i><span>Personil</span></button>
-          <button type="button" data-mobile-job-open="${absoluteIndex}"><i data-lucide="clipboard-list" aria-hidden="true"></i><span>Kontrak</span></button>
-          <button type="button" data-dashboard-open="reports"><i data-lucide="bar-chart-3" aria-hidden="true"></i><span>Laporan</span></button>
-        </nav>
       </article>
     `;
   }).join("");
