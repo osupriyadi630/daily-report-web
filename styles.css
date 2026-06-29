@@ -793,7 +793,17 @@ input:focus, select:focus, textarea:focus {
   width: 30px;
   height: 30px;
   place-items: center;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
   color: #0f2742;
+}
+
+.sidebar-menu-mark:hover,
+.sidebar-menu-mark:focus-visible {
+  background: #e8f6f8;
+  color: #087384;
 }
 
 .sidebar-menu-mark svg {
@@ -963,7 +973,10 @@ input:focus, select:focus, textarea:focus {
 
 .dashboard-main-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 0.72fr) minmax(480px, 1.3fr) minmax(300px, 0.9fr);
+  grid-template-columns: minmax(560px, 1fr) minmax(320px, 0.42fr);
+  grid-template-areas:
+    "tender task"
+    "priority side";
   gap: 14px;
   align-items: start;
 }
@@ -1120,13 +1133,21 @@ input:focus, select:focus, textarea:focus {
   min-height: 0;
 }
 
+.dashboard-task-card {
+  grid-area: task;
+}
+
+.dashboard-tender-card {
+  grid-area: tender;
+}
+
 .dashboard-priority-card {
-  grid-column: 2;
+  grid-area: priority;
 }
 
 .dashboard-side-stack {
   display: grid;
-  grid-row: span 2;
+  grid-area: side;
   gap: 14px;
 }
 
@@ -1207,9 +1228,9 @@ input:focus, select:focus, textarea:focus {
 
 .dashboard-personnel-summary {
   display: grid;
-  grid-template-columns: 86px 108px minmax(0, 1fr);
+  grid-template-columns: 78px 88px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .dashboard-personnel-summary span,
@@ -1231,15 +1252,15 @@ input:focus, select:focus, textarea:focus {
 
 .dashboard-donut {
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
 }
 
 .dashboard-donut::after {
   content: "";
   position: absolute;
-  inset: 24px;
+  inset: 22px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: inset 0 0 0 1px #e2e8f0;
@@ -1425,6 +1446,39 @@ input:focus, select:focus, textarea:focus {
     color: #087384;
     background: #e8f6f8;
     box-shadow: none;
+  }
+
+  body.sidebar-collapsed .sidebar {
+    width: 86px;
+    padding-inline: 12px;
+  }
+
+  body.sidebar-collapsed .brand-row.compact {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  body.sidebar-collapsed .brand-row.compact .sidebar-brand-logo {
+    display: none;
+  }
+
+  body.sidebar-collapsed .nav-item {
+    justify-content: center;
+    padding-inline: 10px;
+  }
+
+  body.sidebar-collapsed .nav-item > span:first-child,
+  body.sidebar-collapsed .sidebar-profile-copy {
+    display: none;
+  }
+
+  body.sidebar-collapsed .sidebar-profile {
+    justify-content: center;
+  }
+
+  body.sidebar-collapsed .main {
+    width: calc(100% - 86px);
+    margin-left: 86px;
   }
 
   .sidebar-profile-wrap {
@@ -4563,6 +4617,11 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   }
   .dashboard-main-grid {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "tender"
+      "task"
+      "priority"
+      "side";
   }
   .dashboard-priority-card {
     grid-column: auto;

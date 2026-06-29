@@ -273,6 +273,7 @@ const statusToList = {
 document.addEventListener("DOMContentLoaded", bindControls);
 
 function bindControls() {
+  applySidebarPreference();
   document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
   document.getElementById("loginModeButton").addEventListener("click", () => setAuthMode("login"));
   document.getElementById("registerModeButton").addEventListener("click", () => setAuthMode("register"));
@@ -280,6 +281,7 @@ function bindControls() {
   document.getElementById("googleLoginButton").addEventListener("click", handleGoogleLogin);
   document.getElementById("logoutButton").addEventListener("click", handleLogout);
   document.getElementById("profileMenuButton").addEventListener("click", toggleProfileMenu);
+  document.getElementById("sidebarToggleButton")?.addEventListener("click", toggleSidebar);
   document.getElementById("openProfileButton").addEventListener("click", openProfileModal);
   document.getElementById("profileResetPasswordButton").addEventListener("click", handleProfilePasswordReset);
   document.getElementById("profileForm").addEventListener("submit", saveProfile);
@@ -565,6 +567,26 @@ document.addEventListener("click", event => {
   const recipientCombobox = event.target.closest(".recipient-combobox");
   if (!recipientCombobox) closeRecipientCombobox();
 });
+
+function applySidebarPreference() {
+  const collapsed = localStorage.getItem("portfolio-workspace.sidebarCollapsed") === "true";
+  document.body.classList.toggle("sidebar-collapsed", collapsed);
+  updateSidebarToggleButton(collapsed);
+}
+
+function toggleSidebar() {
+  const collapsed = !document.body.classList.contains("sidebar-collapsed");
+  document.body.classList.toggle("sidebar-collapsed", collapsed);
+  localStorage.setItem("portfolio-workspace.sidebarCollapsed", String(collapsed));
+  updateSidebarToggleButton(collapsed);
+}
+
+function updateSidebarToggleButton(collapsed) {
+  const button = document.getElementById("sidebarToggleButton");
+  if (!button) return;
+  button.setAttribute("aria-expanded", String(!collapsed));
+  button.setAttribute("aria-label", collapsed ? "Tampilkan menu" : "Sembunyikan menu");
+}
 
 function setAuthMode(mode) {
   state.authMode = mode;

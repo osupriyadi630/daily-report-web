@@ -33,7 +33,7 @@
       showAppBootError("Koneksi memerlukan waktu terlalu lama. Silakan refresh halaman.");
     }, 15000);
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260628213500">
+  <link rel="stylesheet" href="styles.css?v=20260629143000">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -111,7 +111,7 @@
   <div id="appView" class="app-shell hidden">
     <aside class="sidebar">
       <div class="brand-row compact">
-        <span class="sidebar-menu-mark" aria-hidden="true"><i data-lucide="menu"></i></span>
+        <button class="sidebar-menu-mark" id="sidebarToggleButton" type="button" aria-label="Sembunyikan menu" aria-expanded="true"><i data-lucide="menu" aria-hidden="true"></i></button>
         <img class="brand-company-logos sidebar-brand-logo" src="assets/company-logos-transparent.webp" alt="Logo PT Bemaco Rekaprima dan mitra">
       </div>
       <nav class="nav">
@@ -1482,7 +1482,7 @@
       if (window.lucide) window.lucide.createIcons();
     });
   </script>
-  <script type="module" src="app.js?v=20260628214500"></script>
+  <script type="module" src="app.js?v=20260629143000"></script>
 </body>
 </html>
 
