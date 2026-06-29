@@ -2970,7 +2970,7 @@ function renderJobsMobileCards(visibleJobs, startIndex) {
 
   container.innerHTML = visibleJobs.map((job, index) => {
     const absoluteIndex = startIndex + index;
-    const members = getPortfolioMobileMembers(job).slice(0, 4);
+    const members = getPortfolioMobileMembers(job);
     return `
       <article class="portfolio-mobile-card" data-mobile-job-index="${absoluteIndex}">
         <header class="portfolio-mobile-header">

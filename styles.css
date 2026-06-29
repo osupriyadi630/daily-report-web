@@ -3518,8 +3518,11 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
 
 .jobs-panel .personnel-table-wrap {
   max-height: min(620px, calc(100dvh - 350px));
+  overflow: auto;
   padding-bottom: 0;
 }
+
+.portfolio-list-panel .jobs-table { min-width: 900px; }
 
 .jobs-table thead th {
   position: sticky;
@@ -4714,18 +4717,19 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
 
   .portfolio-mobile-table {
     display: grid;
-    max-height: 360px;
+    max-height: 330px; width: 100%;
     overflow-x: auto;
     overflow-y: auto;
     background: #ffffff;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch; scrollbar-gutter: stable both-edges;
   }
 
   .portfolio-mobile-head,
   .portfolio-mobile-row {
     display: grid;
-    grid-template-columns: minmax(76px, 0.9fr) minmax(82px, 1fr) minmax(72px, 0.8fr) minmax(86px, 0.8fr) minmax(92px, 0.9fr);
-    min-width: 430px;
+    grid-template-columns: 130px 124px 118px 104px 132px;
+    min-width: 608px;
     align-items: center;
   }
 
