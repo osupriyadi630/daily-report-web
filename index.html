@@ -33,7 +33,7 @@
       showAppBootError("Koneksi memerlukan waktu terlalu lama. Silakan refresh halaman.");
     }, 15000);
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260629182100">
+  <link rel="stylesheet" href="styles.css?v=20260629192500">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -288,42 +288,65 @@
           </section>
 
           <section class="dashboard-main-grid">
-            <article class="dashboard-card dashboard-task-card">
-              <header class="dashboard-card-header">
-                <h3><i data-lucide="list-checks" aria-hidden="true"></i> Tugas Harian</h3>
-                <button class="text-button" type="button" data-dashboard-open="tasks">Lihat Semua</button>
-              </header>
-              <div id="dashDailyTasks" class="dashboard-task-list"></div>
-              <button class="dashboard-card-footer-button" id="dashboardAddItemButton" type="button">
-                <i data-lucide="plus" aria-hidden="true"></i>
-                Tambah Item
-              </button>
-            </article>
+            <div class="dashboard-primary-stack">
+              <article class="dashboard-card dashboard-tender-card">
+                <header class="dashboard-card-header">
+                  <h3><i data-lucide="briefcase-business" aria-hidden="true"></i> Tender Aktif</h3>
+                  <button class="text-button" type="button" data-dashboard-open="tenders">Lihat Semua</button>
+                </header>
+                <div class="dashboard-table-wrap">
+                  <table class="dashboard-mini-table">
+                    <thead>
+                      <tr>
+                        <th>Nama Tender</th>
+                        <th>Proyek</th>
+                        <th>Instansi</th>
+                        <th>Nilai HPS</th>
+                        <th>Batas Akhir</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashTenderRows"></tbody>
+                  </table>
+                </div>
+                <button class="dashboard-card-footer-button" type="button" data-dashboard-open="tenders">Lihat Semua Tender</button>
+              </article>
 
-            <article class="dashboard-card dashboard-tender-card">
-              <header class="dashboard-card-header">
-                <h3><i data-lucide="briefcase-business" aria-hidden="true"></i> Tender Aktif</h3>
-                <button class="text-button" type="button" data-dashboard-open="tenders">Lihat Semua</button>
-              </header>
-              <div class="dashboard-table-wrap">
-                <table class="dashboard-mini-table">
-                  <thead>
-                    <tr>
-                      <th>Nama Tender</th>
-                      <th>Proyek</th>
-                      <th>Instansi</th>
-                      <th>Nilai HPS</th>
-                      <th>Batas Akhir</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashTenderRows"></tbody>
-                </table>
-              </div>
-              <button class="dashboard-card-footer-button" type="button" data-dashboard-open="tenders">Lihat Semua Tender</button>
-            </article>
+              <article class="dashboard-card dashboard-priority-card">
+                <header class="dashboard-card-header">
+                  <h3><i data-lucide="star" aria-hidden="true"></i> Paket Prioritas</h3>
+                </header>
+                <div class="dashboard-table-wrap">
+                  <table class="dashboard-mini-table">
+                    <thead>
+                      <tr>
+                        <th>Paket</th>
+                        <th>Proyek</th>
+                        <th>Prioritas</th>
+                        <th>Progress</th>
+                        <th>PIC</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboardFeaturedJobs"></tbody>
+                  </table>
+                </div>
+                <button class="dashboard-card-footer-button" id="dashboardOpenPortfolioButton" type="button">Lihat Semua Paket Prioritas</button>
+              </article>
+            </div>
 
             <aside class="dashboard-side-stack">
+              <article class="dashboard-card dashboard-task-card">
+                <header class="dashboard-card-header">
+                  <h3><i data-lucide="list-checks" aria-hidden="true"></i> Tugas Harian</h3>
+                  <button class="text-button" type="button" data-dashboard-open="tasks">Lihat Semua</button>
+                </header>
+                <div id="dashDailyTasks" class="dashboard-task-list"></div>
+                <button class="dashboard-card-footer-button" id="dashboardAddItemButton" type="button">
+                  <i data-lucide="plus" aria-hidden="true"></i>
+                  Tambah Item
+                </button>
+              </article>
+
               <article class="dashboard-card">
                 <header class="dashboard-card-header">
                   <h3><i data-lucide="user-round" aria-hidden="true"></i> Personil</h3>
@@ -366,27 +389,6 @@
                 <button class="dashboard-card-footer-button" type="button" data-dashboard-open="tasks">Lihat Semua Pengingat</button>
               </article>
             </aside>
-
-            <article class="dashboard-card dashboard-priority-card">
-              <header class="dashboard-card-header">
-                <h3><i data-lucide="star" aria-hidden="true"></i> Paket Prioritas</h3>
-              </header>
-              <div class="dashboard-table-wrap">
-                <table class="dashboard-mini-table">
-                  <thead>
-                    <tr>
-                      <th>Paket</th>
-                      <th>Proyek</th>
-                      <th>Prioritas</th>
-                      <th>Progress</th>
-                      <th>PIC</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboardFeaturedJobs"></tbody>
-                </table>
-              </div>
-              <button class="dashboard-card-footer-button" id="dashboardOpenPortfolioButton" type="button">Lihat Semua Paket Prioritas</button>
-            </article>
           </section>
 
           <div class="dashboard-hidden-sinks" aria-hidden="true">
@@ -1484,7 +1486,7 @@
       if (window.lucide) window.lucide.createIcons();
     });
   </script>
-  <script type="module" src="app.js?v=20260629182100"></script>
+  <script type="module" src="app.js?v=20260629192500"></script>
 </body>
 </html>
 

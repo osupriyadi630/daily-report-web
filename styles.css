@@ -974,12 +974,12 @@ input:focus, select:focus, textarea:focus {
 .dashboard-main-grid {
   display: grid;
   grid-template-columns: minmax(560px, 1fr) minmax(320px, 0.42fr);
-  grid-template-areas:
-    "tender task"
-    "priority side";
   gap: 14px;
   align-items: start;
 }
+
+.dashboard-primary-stack,
+.dashboard-side-stack { display: grid; gap: 14px; align-content: start; }
 
 .dashboard-card {
   min-width: 0;
@@ -1133,23 +1133,7 @@ input:focus, select:focus, textarea:focus {
   min-height: 0;
 }
 
-.dashboard-task-card {
-  grid-area: task;
-}
-
-.dashboard-tender-card {
-  grid-area: tender;
-}
-
-.dashboard-priority-card {
-  grid-area: priority;
-}
-
-.dashboard-side-stack {
-  display: grid;
-  grid-area: side;
-  gap: 14px;
-}
+.dashboard-side-stack { min-width: 0; }
 
 .dashboard-table-wrap {
   overflow: auto;
@@ -4624,14 +4608,6 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   }
   .dashboard-main-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "tender"
-      "task"
-      "priority"
-      "side";
-  }
-  .dashboard-priority-card {
-    grid-column: auto;
   }
   .dashboard-side-stack {
     grid-row: auto;
