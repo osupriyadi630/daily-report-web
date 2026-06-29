@@ -412,6 +412,7 @@ function bindControls() {
   document.getElementById("jobsPrevPage").addEventListener("click", () => changeJobsPage(-1));
   document.getElementById("jobsNextPage").addEventListener("click", () => changeJobsPage(1));
   document.getElementById("jobsTableBody").addEventListener("click", handleJobsTableClick);
+  document.getElementById("jobsMobileCards")?.addEventListener("click", handleJobsMobileClick);
   document.getElementById("portfolioFeaturedJobs").addEventListener("click", handlePortfolioCardClick);
   document.getElementById("portfolioSummary").addEventListener("click", handlePortfolioSummaryClick);
   document.getElementById("portfolioAddItemButton").addEventListener("click", () => openJobRecordForm());
@@ -2955,7 +2956,97 @@ function renderJobs() {
     `).join("");
   }
 
+  renderJobsMobileCards(visible, startIndex);
   setJobsPaginationButtons(pageCount);
+}
+
+function renderJobsMobileCards(visibleJobs, startIndex) {
+  const container = document.getElementById("jobsMobileCards");
+  if (!container) return;
+  if (!visibleJobs.length) {
+    container.innerHTML = '<p class="portfolio-mobile-empty">Tidak ada pekerjaan yang cocok.</p>';
+    return;
+  }
+
+  container.innerHTML = visibleJobs.map((job, index) => {
+    const absoluteIndex = startIndex + index;
+    const members = getPortfolioMobileMembers(job).slice(0, 4);
+    return `
+      <article class="portfolio-mobile-card" data-mobile-job-index="${absoluteIndex}">
+        <header class="portfolio-mobile-header">
+          <button type="button" class="portfolio-mobile-back" data-mobile-job-open="${absoluteIndex}" aria-label="Buka rincian ${escapeHtml(job.pekerjaan)}">
+            <i data-lucide="chevron-left" aria-hidden="true"></i>
+          </button>
+          <div>
+            <strong>${escapeHtml(job.pekerjaan || "Pekerjaan")}</strong>
+            <span>${escapeHtml(getPortfolioStatusLabel(job))} · ${job.personnelCount ?? job.records.length} personil</span>
+          </div>
+        </header>
+        <div class="portfolio-mobile-table" role="table" aria-label="Personil ${escapeHtml(job.pekerjaan)}">
+          <div class="portfolio-mobile-head" role="row">
+            <span>Nama</span>
+            <span>Posisi</span>
+            <span>Status</span>
+            <span>Keterlibatan</span>
+            <span>Aksi</span>
+          </div>
+          ${members.length ? members.map((member, memberIndex) => `
+            <div class="portfolio-mobile-row" role="row">
+              <strong>${escapeHtml(member.name)}</strong>
+              <span>${escapeHtml(member.position)}</span>
+              <span><em class="portfolio-mobile-status ${member.statusClass}">${escapeHtml(member.status)}</em></span>
+              <span><b class="portfolio-mobile-check ${member.involved ? "yes" : "no"}">${member.involved ? "✓" : "✕"}</b></span>
+              <span>
+                <button type="button" data-mobile-job-open="${absoluteIndex}">Detail</button>
+                ${member.rowNumber ? `<button type="button" data-mobile-job-edit="${absoluteIndex}" data-mobile-member-index="${memberIndex}">Edit</button>` : ""}
+              </span>
+            </div>
+          `).join("") : `
+            <div class="portfolio-mobile-row empty" role="row">
+              <strong>-</strong>
+              <span>Belum ada personil</span>
+              <span><em class="portfolio-mobile-status neutral">-</em></span>
+              <span><b class="portfolio-mobile-check no">✕</b></span>
+              <span><button type="button" data-mobile-job-open="${absoluteIndex}">Detail</button></span>
+            </div>
+          `}
+        </div>
+        <nav class="portfolio-mobile-tabs" aria-label="Navigasi portofolio mobile">
+          <button type="button" data-dashboard-open="personnel"><i data-lucide="home" aria-hidden="true"></i><span>Kontak</span></button>
+          <button type="button" class="active"><i data-lucide="users" aria-hidden="true"></i><span>Personil</span></button>
+          <button type="button" data-mobile-job-open="${absoluteIndex}"><i data-lucide="clipboard-list" aria-hidden="true"></i><span>Kontrak</span></button>
+          <button type="button" data-dashboard-open="reports"><i data-lucide="bar-chart-3" aria-hidden="true"></i><span>Laporan</span></button>
+        </nav>
+      </article>
+    `;
+  }).join("");
+  window.lucide?.createIcons?.();
+}
+
+function getPortfolioMobileMembers(job) {
+  return (job.records || []).map(record => {
+    const rawStatus = getRecordValue(record, ["status kontrak", "status pekerjaan", "status project", "status proyek"]) || getPortfolioStatusLabel(job);
+    const normalizedStatus = normalizeSearchText(rawStatus);
+    const involvedText = getRecordValue(record, ["keterlibatan", "terlibat", "aktif"]);
+    const involved = ["ya", "yes", "true", "1", "aktif"].includes(normalizeSearchText(involvedText));
+    return {
+      name: getRecordValue(record, ["nama personil", "nama lengkap", "nama"]) || "-",
+      position: getRecordValue(record, [
+        "posisi/jabatan (real)",
+        "posisi jabatan real",
+        "posisi/jabatan (kontrak)",
+        "posisi jabatan kontrak",
+        "jabatan",
+        "posisi"
+      ]) || "-",
+      status: rawStatus || "-",
+      statusClass: includesAny(normalizedStatus, ["kontrak", "aktif", "ongoing", "progress"]) ? "contract" :
+        includesAny(normalizedStatus, ["tidak", "non", "selesai", "finish"]) ? "inactive" : "neutral",
+      involved,
+      rowNumber: Number(record["_Sumber Baris"]) || 0,
+      record
+    };
+  });
 }
 
 function setJobsPaginationButtons(pageCount) {
@@ -2989,6 +3080,23 @@ function handleJobsTableClick(event) {
   const row = event.target.closest("[data-job-index]");
   if (!row) return;
   const job = state.jobsVisibleRecords[Number(row.dataset.jobIndex)];
+  openPortfolioJob(job);
+}
+
+function handleJobsMobileClick(event) {
+  const editButton = event.target.closest("[data-mobile-job-edit]");
+  if (editButton) {
+    const job = state.jobsVisibleRecords[Number(editButton.dataset.mobileJobEdit)];
+    if (!job) return;
+    const member = getPortfolioMobileMembers(job)[Number(editButton.dataset.mobileMemberIndex)];
+    if (job && member?.record) openJobRecordForm(member.record, job);
+    return;
+  }
+
+  const openButton = event.target.closest("[data-mobile-job-open], [data-mobile-job-index]");
+  if (!openButton) return;
+  const index = Number(openButton.dataset.mobileJobOpen || openButton.dataset.mobileJobIndex);
+  const job = state.jobsVisibleRecords[index];
   openPortfolioJob(job);
 }
 

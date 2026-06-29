@@ -3548,6 +3548,10 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
   outline: none;
 }
 
+.portfolio-mobile-list {
+  display: none;
+}
+
 #jobDetailModal {
   width: min(1440px, calc(100vw - 24px));
   max-width: none;
@@ -4632,6 +4636,215 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
   }
   .dashboard-side-stack .dashboard-card:last-child {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  #jobsView .portfolio-workspace-shell {
+    display: none;
+  }
+
+  .jobs-panel {
+    min-height: 0;
+  }
+
+  .jobs-panel .table-wrap {
+    display: none;
+  }
+
+  .portfolio-mobile-list {
+    display: grid;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .portfolio-mobile-card {
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.13);
+  }
+
+  .portfolio-mobile-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #0f5ec8, #0b64d8);
+    color: #ffffff;
+  }
+
+  .portfolio-mobile-header strong,
+  .portfolio-mobile-header span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .portfolio-mobile-header strong {
+    font-size: 15px;
+    font-weight: 900;
+  }
+
+  .portfolio-mobile-header span {
+    margin-top: 2px;
+    color: #dbeafe;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .portfolio-mobile-back {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+  }
+
+  .portfolio-mobile-back svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .portfolio-mobile-table {
+    display: grid;
+    overflow-x: auto;
+    background: #ffffff;
+  }
+
+  .portfolio-mobile-head,
+  .portfolio-mobile-row {
+    display: grid;
+    grid-template-columns: minmax(76px, 0.9fr) minmax(82px, 1fr) minmax(72px, 0.8fr) minmax(86px, 0.8fr) minmax(92px, 0.9fr);
+    min-width: 430px;
+    align-items: center;
+  }
+
+  .portfolio-mobile-head {
+    padding: 10px 12px;
+    border-bottom: 1px solid #dbe3ee;
+    background: #f8fafc;
+    color: #1f2937;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .portfolio-mobile-row {
+    padding: 10px 12px;
+    border-bottom: 1px solid #dbe3ee;
+    color: #0f172a;
+    font-size: 12px;
+  }
+
+  .portfolio-mobile-row:nth-child(odd) {
+    background: #f8fbff;
+  }
+
+  .portfolio-mobile-row strong,
+  .portfolio-mobile-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .portfolio-mobile-status {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 900;
+  }
+
+  .portfolio-mobile-status.contract {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  .portfolio-mobile-status.inactive {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .portfolio-mobile-status.neutral {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  .portfolio-mobile-check {
+    display: inline-grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .portfolio-mobile-check.yes { background: #38a169; }
+  .portfolio-mobile-check.no { background: #ef4444; }
+
+  .portfolio-mobile-row button {
+    min-width: 54px;
+    border: 0;
+    border-radius: 7px;
+    padding: 7px 8px;
+    background: #1d5fbf;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .portfolio-mobile-row button + button {
+    margin-left: 4px;
+  }
+
+  .portfolio-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 2px solid #dbe3ee;
+    background: #ffffff;
+  }
+
+  .portfolio-mobile-tabs button {
+    display: grid;
+    min-height: 68px;
+    place-items: center;
+    gap: 4px;
+    border: 0;
+    background: transparent;
+    color: #7890b5;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .portfolio-mobile-tabs button.active {
+    color: #0f5ec8;
+    box-shadow: inset 0 -4px 0 #0f5ec8;
+  }
+
+  .portfolio-mobile-tabs svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .portfolio-mobile-empty {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    background: #ffffff;
+    color: var(--muted);
+    text-align: center;
   }
 }
 
