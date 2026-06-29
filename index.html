@@ -33,7 +33,7 @@
       showAppBootError("Koneksi memerlukan waktu terlalu lama. Silakan refresh halaman.");
     }, 15000);
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260629192500">
+  <link rel="stylesheet" href="styles.css?v=20260629200600">
 </head>
 <body class="auth-pending">
   <div id="loadingView" class="loading-screen">
@@ -193,17 +193,6 @@
         </div>
         <div class="top-actions">
           <input id="searchInput" type="search" placeholder="Cari tugas atau catatan">
-          <div class="action-dropdown">
-            <button class="secondary-button action-dropdown-button" id="actionMenuButton" type="button" aria-expanded="false">
-              Pilihan
-              <span class="dropdown-chevron" aria-hidden="true"></span>
-            </button>
-            <div class="action-dropdown-menu hidden" id="actionDropdownMenu" role="menu">
-              <button type="button" id="newTaskButton" role="menuitem">+ Tugas Baru</button>
-              <button type="button" id="sendAllButton" role="menuitem">Kirim Reminder</button>
-              <button type="button" id="exportCsvButton" role="menuitem">Export sebagai CSV...</button>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -229,10 +218,18 @@
                 <option value="active">Proyek Aktif</option>
                 <option value="tender">Tender</option>
               </select>
-              <button class="primary-button dashboard-create-task" id="dashboardTaskAddButton" type="button">
-                <i data-lucide="plus" aria-hidden="true"></i>
-                <span>Buat Tugas</span>
-              </button>
+              <div class="action-dropdown dashboard-create-dropdown">
+                <button class="primary-button dashboard-create-task action-dropdown-button" id="actionMenuButton" type="button" aria-expanded="false">
+                  <i data-lucide="plus" aria-hidden="true"></i>
+                  <span>Buat Tugas</span>
+                  <span class="dropdown-chevron" aria-hidden="true"></span>
+                </button>
+                <div class="action-dropdown-menu hidden" id="actionDropdownMenu" role="menu">
+                  <button type="button" id="newTaskButton" role="menuitem">+ Tugas Baru</button>
+                  <button type="button" id="sendAllButton" role="menuitem">Kirim Reminder</button>
+                  <button type="button" id="exportCsvButton" role="menuitem">Export sebagai CSV...</button>
+                </div>
+              </div>
             </div>
           </header>
 
@@ -1486,7 +1483,7 @@
       if (window.lucide) window.lucide.createIcons();
     });
   </script>
-  <script type="module" src="app.js?v=20260629192500"></script>
+  <script type="module" src="app.js?v=20260629200600"></script>
 </body>
 </html>
 

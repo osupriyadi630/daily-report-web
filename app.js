@@ -371,7 +371,6 @@ function bindControls() {
   document.getElementById("dashboardActivePersonnelBody").addEventListener("click", handleDashboardPersonnelClick);
   document.getElementById("dashboardInactivePersonnelBody").addEventListener("click", handleDashboardPersonnelClick);
   document.getElementById("dashboardAddItemButton").addEventListener("click", () => openJobRecordForm());
-  document.getElementById("dashboardTaskAddButton").addEventListener("click", openTaskModal);
   document.getElementById("dashboardOpenPortfolioButton").addEventListener("click", () => setView("jobs"));
   document.getElementById("dashboardPortfolioSummary").addEventListener("click", handlePortfolioSummaryClick);
   document.getElementById("dashboardFeaturedJobs").addEventListener("click", handleDashboardPortfolioCardClick);
@@ -903,7 +902,7 @@ function renderAccessControl() {
   const canCreate = canCreateTask();
   document.getElementById("newTaskButton").classList.toggle("hidden", !canCreate);
   document.getElementById("newTaskButtonTable").classList.toggle("hidden", !canCreate);
-  document.getElementById("dashboardTaskAddButton").classList.toggle("hidden", !canCreate);
+  document.getElementById("actionMenuButton").classList.toggle("hidden", !canCreate);
   document.getElementById("sendAllButton").classList.toggle("hidden", !canSendReminders());
   document.getElementById("sendSelectedButton").classList.toggle("hidden", !canSendReminders());
   document.getElementById("createReportButton").classList.toggle("hidden", !canCreateReports());
